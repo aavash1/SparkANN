@@ -55,8 +55,9 @@ public class GraphDatasetParsingFile {
 			}
 			return nodeList.iterator();
 		});
+		nodesPart.foreach(np -> System.out.println(np.toString()));
 		JavaRDD<Tuple2<Integer, Integer>> nodesRDD = javaSparkContext.parallelize(nodes);
-		nodesRDD.foreach(data -> System.out.print("Node details: " + data._1() + " " + data._2()));
+		nodesRDD.foreach(data -> System.out.print("Node details: "));
 
 		JavaRDD<EdgeNetwork> edgesPart = inputEdgesTextFile.mapPartitions(p -> {
 			ArrayList<EdgeNetwork> edgeList = new ArrayList<EdgeNetwork>();
