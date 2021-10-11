@@ -12,22 +12,24 @@ import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.graphx.Edge;
 import org.apache.spark.graphx.Graph;
-import org.apache.spark.graphx.GraphXUtils;
+
 import org.apache.spark.graphx.PartitionStrategy;
 import org.apache.spark.storage.StorageLevel;
 
 import scala.Tuple2;
 import scala.reflect.ClassTag;
 
-public class PropertyGraphExampleFromEdges implements Serializable {
+public class PropertyGraphExampleFromEdges {
 	public static void main(String[] args) throws IOException {
-	
+
 		SparkConf conf = new SparkConf().setMaster("local").setAppName("graph");
+		@SuppressWarnings("resource")
 		JavaSparkContext javaSparkContext = new JavaSparkContext(conf);
 		// JavaRDD<String> inputEdgesTextFile =
 		// javaSparkContext.textFile("Dataset/SFEdge.txt");
 
 		ClassTag<String> stringTag = scala.reflect.ClassTag$.MODULE$.apply(String.class);
+		@SuppressWarnings("unused")
 		ClassTag<Integer> intTag = scala.reflect.ClassTag$.MODULE$.apply(Integer.class);
 		ClassTag<Double> doubleTag = scala.reflect.ClassTag$.MODULE$.apply(Double.class);
 
@@ -65,15 +67,10 @@ public class PropertyGraphExampleFromEdges implements Serializable {
 		// x.srcId() + " , DestinationNode: "
 		// + x.dstId() + ", Distance SRC-DEST: " + x.attr$mcD$sp()));
 
-		// Error is generated here below this comment
-		graph.partitionBy(PartitionStrategy.CanonicalRandomVertexCut$.MODULE$);
+		graph.partitionBy(PartitionStrategy.RandomVertexCut$.MODULE$, 3);
 		Graph<Object, Double> triangleCount = graph.ops().triangleCount();
-		triangleCount.vertices().toJavaRDD().collect().forEach(System.out::println);
+	//	triangleCount.vertices().toJavaRDD().collect().forEach(System.out::println);
 
-	}
-
-	public int getPartition(long src, long dst, int numParts) {
-		return 1;
 	}
 
 	public static boolean readTextEdgeFile(List<Edge<Double>> edgeList, String txtFileName)
