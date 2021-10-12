@@ -4,7 +4,7 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.Serializable;
+
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.spark.SparkConf;
@@ -68,8 +68,9 @@ public class PropertyGraphExampleFromEdges {
 		// + x.dstId() + ", Distance SRC-DEST: " + x.attr$mcD$sp()));
 
 		graph.partitionBy(PartitionStrategy.RandomVertexCut$.MODULE$, 3);
-		Graph<Object, Double> triangleCount = graph.ops().triangleCount();
-	//	triangleCount.vertices().toJavaRDD().collect().forEach(System.out::println);
+		Graph<Object, Double> connectedComponents = graph.ops().connectedComponents();
+		connectedComponents.vertices().toJavaRDD().collect().forEach(System.out::println);
+		// triangleCount.vertices().toJavaRDD().collect().forEach(System.out::println);
 
 	}
 
