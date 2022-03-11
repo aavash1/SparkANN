@@ -16,13 +16,19 @@ import org.apache.spark.graphx.Graph;
 import org.apache.spark.graphx.PartitionStrategy;
 import org.apache.spark.storage.StorageLevel;
 
+import com.aavash.ann.sparkann.graph.Utilsmanagement;
+
 import scala.Tuple2;
 import scala.reflect.ClassTag;
 
 public class PropertyGraphExampleFromEdges {
 	public static void main(String[] args) throws IOException {
 
-		SparkConf conf = new SparkConf().setMaster("local").setAppName("graph");
+		SparkConf conf = new SparkConf().setMaster("spark://210.107.197.209:7077").setAppName("graph")
+				.set("spark.blockManager.port", "10025").set("spark.driver.blockManager.port", "10026")
+				.set("spark.driver.port", "10027").set("spark.cores.max", "12").set("spark.executor.memory", "4g")
+				.set("spark.driver.host", "210.107.197.209").set("spark.shuffle.service.enabled", "false")
+				.set("spark.dynamicAllocation.enabled", "false");
 		@SuppressWarnings("resource")
 		JavaSparkContext javaSparkContext = new JavaSparkContext(conf);
 		// JavaRDD<String> inputEdgesTextFile =
@@ -38,6 +44,7 @@ public class PropertyGraphExampleFromEdges {
 
 		String edgesInputFileName = "Dataset/SFEdge.txt";
 		String nodesInputFileName = "Dataset/SFNodes.txt";
+		String partitionInputFile = "PartitionDataset/Cal_Part_2.txt";
 
 		// Edge datset contains edgeId|SourceId|DestinationId|EdgeLength
 		// edges.add(new Edge<Double>(1, 2, 3.5));
@@ -47,8 +54,8 @@ public class PropertyGraphExampleFromEdges {
 		// edges.add(new Edge<Double>(4, 5, 9.6));
 		// edges.add(new Edge<Double>(2, 5, 3.3));
 
-		readTextEdgeFile(edges, edgesInputFileName);
-		readTextNodeFile(nodes, nodesInputFileName);
+		Utilsmanagement.readTextEdgeFile(edges, edgesInputFileName);
+		Utilsmanagement.readTextNodeFile(nodes, nodesInputFileName);
 
 		JavaRDD<Edge<Double>> edgeRDD = javaSparkContext.parallelize(edges);
 		JavaRDD<Tuple2<Object, String>> nodeRDD = javaSparkContext.parallelize(nodes);
@@ -74,60 +81,4 @@ public class PropertyGraphExampleFromEdges {
 
 	}
 
-	public static boolean readTextEdgeFile(List<Edge<Double>> edgeList, String txtFileName)
-			throws FileNotFoundException, IOException {
-		String line = "";
-		String txtSplitBy = " ";
-		boolean removedBOM = false;
-		try (BufferedReader br = new BufferedReader(new FileReader(txtFileName))) {
-			while ((line = br.readLine()) != null) {
-				String[] record = line.split(txtSplitBy);
-				if (record.length == 4) {
-					if (!removedBOM && record[0] != "0") {
-
-						record[0] = String.valueOf(0);
-						removedBOM = true;
-
-					}
-					edgeList.add(new Edge<Double>(Integer.parseInt(record[1]), Integer.parseInt(record[2]),
-							Double.parseDouble(record[3])));
-
-				}
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-
-		return true;
-
-	}
-
-	public static boolean readTextNodeFile(List<Tuple2<Object, String>> nodeList, String txtFileName)
-			throws FileNotFoundException, IOException {
-		String line = "";
-		String txtSplitBy = " ";
-		boolean removedBOM = false;
-		long counter = 0L;
-		try (BufferedReader br = new BufferedReader(new FileReader(txtFileName))) {
-			while ((line = br.readLine()) != null) {
-				String[] record = line.split(txtSplitBy);
-				if (record.length == 4) {
-					if (!removedBOM && record[0] != "0") {
-
-						record[0] = String.valueOf(0);
-						removedBOM = true;
-
-					}
-					nodeList.add(new Tuple2<Object, String>(counter, record[0]));
-					counter++;
-
-				}
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-
-		return true;
-
-	}
 }
