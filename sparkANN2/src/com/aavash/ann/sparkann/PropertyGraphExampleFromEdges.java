@@ -6,7 +6,10 @@ import java.io.FileReader;
 import java.io.IOException;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -22,7 +25,7 @@ import scala.Tuple2;
 import scala.reflect.ClassTag;
 
 public class PropertyGraphExampleFromEdges {
-	public static void main(String[] args) throws IOException {
+	public static <T> void main(String[] args) throws IOException {
 
 		SparkConf conf = new SparkConf().setMaster("spark://210.107.197.209:7077").setAppName("graph")
 				.set("spark.blockManager.port", "10025").set("spark.driver.blockManager.port", "10026")
@@ -41,6 +44,7 @@ public class PropertyGraphExampleFromEdges {
 
 		List<Edge<Double>> edges = new ArrayList<>();
 		List<Tuple2<Object, String>> nodes = new ArrayList<>();
+		Map<Integer, Integer> toPartition = new HashMap<Integer, Integer>();
 
 		String edgesInputFileName = "Dataset/SFEdge.txt";
 		String nodesInputFileName = "Dataset/SFNodes.txt";
@@ -59,6 +63,8 @@ public class PropertyGraphExampleFromEdges {
 
 		JavaRDD<Edge<Double>> edgeRDD = javaSparkContext.parallelize(edges);
 		JavaRDD<Tuple2<Object, String>> nodeRDD = javaSparkContext.parallelize(nodes);
+		JavaRDD<Map<Integer, Integer>> toPartitonRDD = javaSparkContext
+				.parallelize((List<Map<Integer, Integer>>) toPartition);
 
 		Graph<String, Double> graph = Graph.apply(nodeRDD.rdd(), edgeRDD.rdd(), "", StorageLevel.MEMORY_ONLY(),
 				StorageLevel.MEMORY_ONLY(), stringTag, doubleTag);

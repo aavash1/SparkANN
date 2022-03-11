@@ -1,12 +1,14 @@
 package com.aavash.ann.sparkann.graph;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.spark.graphx.Edge;
 import org.apache.spark.graphx.Graph;
@@ -77,6 +79,35 @@ public class Utilsmanagement {
 	public Graph<String, Double> getSubgraphAfterPartition(Graph<String, Double> inputGraph, int numberOfPartition) {
 
 		return inputGraph;
+	}
+
+	// txtFileName1: partition file
+	// txtFileName2: Node file
+	public static void readMultipleTextFiles(String txtFileName1, String txtFileName2,
+			List<Map<Integer, Integer>> toPartition) throws IOException {
+
+		String txtSplitBy = " ";
+		boolean removedBOM = false;
+		File[] files = { new File(txtFileName1), new File(txtFileName2) };
+		// fetching all files
+		for (File file : files) {
+			BufferedReader inputStream = null;
+			String line;
+			try {
+				inputStream = new BufferedReader(new FileReader(file));
+				while ((line = inputStream.readLine()) != null) {
+
+				}
+
+			} catch (IOException e) {
+				e.printStackTrace();
+			} finally {
+				if (inputStream != null) {
+					inputStream.close();
+				}
+			}
+		}
+
 	}
 
 	public static void writeHGREdgeFile(Graph<String, Double> graph, int NumberOfEdge, int NumberOfVertices,
