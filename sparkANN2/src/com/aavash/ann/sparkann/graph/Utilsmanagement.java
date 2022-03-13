@@ -7,6 +7,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -172,6 +173,36 @@ public class Utilsmanagement {
 		}
 
 		System.out.println("File Written Successfully");
+
+	}
+
+	// Read METIS Input type
+	public static HashMap<Object, ArrayList<Integer>> readMETISInputGraph(String metisInput,
+			HashMap<Object, ArrayList<Integer>> neighbors) {
+		String line = "";
+		String txtSplitBy = " ";
+//		boolean removedBOM = false;
+		long counter = 1L;
+
+		try (BufferedReader br = new BufferedReader(new FileReader(metisInput))) {
+			//System.out.println("Inside the reader");
+			br.readLine();
+			while ((line = br.readLine()) != null) {
+				String[] record = line.split(txtSplitBy);
+				int textLength = line.split(txtSplitBy).length;
+				ArrayList<Integer> adjacentNeighbors = new ArrayList<Integer>();
+				for (int i = 0; i < textLength; i++) {
+					adjacentNeighbors.add(Integer.parseInt(record[i]));
+				}
+				neighbors.put(counter, adjacentNeighbors);
+				counter++;
+
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	//	System.out.println("Reading successful");
+		return neighbors;
 
 	}
 
