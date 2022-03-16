@@ -66,7 +66,7 @@ public class PropertyGraphExampleFromEdges {
 
 		Utilsmanagement.readTextEdgeFile(edges, edgesInputFileName);
 		Utilsmanagement.readTextNodeFile(nodes, nodesInputFileName);
-		metisHolder = Utilsmanagement.readMETISInputGraph(metisInputGraph, metisHolder);
+		//metisHolder = Utilsmanagement.readMETISInputGraph(metisInputGraph, metisHolder);
 
 		JavaRDD<Edge<Double>> edgeRDD = javaSparkContext.parallelize(edges);
 		JavaRDD<Tuple2<Object, String>> nodeRDD = javaSparkContext.parallelize(nodes);
@@ -76,12 +76,11 @@ public class PropertyGraphExampleFromEdges {
 		Graph<String, Double> graph = Graph.apply(nodeRDD.rdd(), edgeRDD.rdd(), "", StorageLevel.MEMORY_ONLY(),
 				StorageLevel.MEMORY_ONLY(), stringTag, doubleTag);
 
-		// Graph<String, Double> graph = Graph.fromEdges(edgeRDD.rdd(), "",
-		// StorageLevel.MEMORY_ONLY(),
-		// StorageLevel.MEMORY_ONLY(), stringTag, doubleTag);
+//		Graph<String, Double> graph = Graph.fromEdges(edgeRDD.rdd(), "", StorageLevel.MEMORY_ONLY(),
+//				StorageLevel.MEMORY_ONLY(), stringTag, doubleTag);
 
-		// graph.edges().toJavaRDD().collect().forEach(System.out::println);
-		// graph.vertices().toJavaRDD().collect().forEach(System.out::println);
+		graph.edges().toJavaRDD().collect().forEach(System.out::println);
+		graph.vertices().toJavaRDD().collect().forEach(System.out::println);
 		graph.edges().toJavaRDD().collect();
 //
 //		 graph.edges().toJavaRDD().foreach(x -> System.out.println("SourceNode: " +

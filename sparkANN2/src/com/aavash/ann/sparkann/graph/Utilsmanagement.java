@@ -19,7 +19,7 @@ import scala.Tuple2;
 public class Utilsmanagement {
 	final static String txtSplitBy = " ";
 
-	public static boolean readTextEdgeFile(List<Edge<Double>> edgeList, String txtFileName)
+	public static List<Edge<Double>> readTextEdgeFile(List<Edge<Double>> edgeList, String txtFileName)
 			throws FileNotFoundException, IOException {
 		String line = "";
 		String txtSplitBy = "  ";
@@ -44,12 +44,12 @@ public class Utilsmanagement {
 			e.printStackTrace();
 		}
 
-		return true;
+		return edgeList;
 
 	}
 
-	public static boolean readTextNodeFile(List<Tuple2<Object, String>> nodeList, String txtFileName)
-			throws FileNotFoundException, IOException {
+	public static List<Tuple2<Object, String>> readTextNodeFile(List<Tuple2<Object, String>> nodeList,
+			String txtFileName) throws FileNotFoundException, IOException {
 		String line = "";
 		String txtSplitBy = " ";
 		boolean removedBOM = false;
@@ -73,7 +73,7 @@ public class Utilsmanagement {
 			e.printStackTrace();
 		}
 
-		return true;
+		return nodeList;
 
 	}
 
@@ -177,33 +177,58 @@ public class Utilsmanagement {
 	}
 
 	// Read METIS Input type
-	public static HashMap<Object, ArrayList<Integer>> readMETISInputGraph(String metisInput,
-			HashMap<Object, ArrayList<Integer>> neighbors) {
+	public static Map<Object, List<Integer>> readMETISInputGraph(String metisInput,
+			Map<Object, List<Integer>> metisHolder) {
 		String line = "";
 		String txtSplitBy = " ";
 //		boolean removedBOM = false;
 		long counter = 1L;
 
 		try (BufferedReader br = new BufferedReader(new FileReader(metisInput))) {
-			//System.out.println("Inside the reader");
+			// System.out.println("Inside the reader");
 			br.readLine();
 			while ((line = br.readLine()) != null) {
 				String[] record = line.split(txtSplitBy);
 				int textLength = line.split(txtSplitBy).length;
-				ArrayList<Integer> adjacentNeighbors = new ArrayList<Integer>();
+				List<Integer> adjacentNeighbors = new ArrayList<Integer>();
 				for (int i = 0; i < textLength; i++) {
-					adjacentNeighbors.add(Integer.parseInt(record[i]));
+					if (record[i] != "") {
+						adjacentNeighbors.add(Integer.parseInt(record[i]));
+
+					} else {
+						adjacentNeighbors.add(Integer.parseInt(record[i + 1]));
+					}
+
 				}
-				neighbors.put(counter, adjacentNeighbors);
+				metisHolder.put(counter, adjacentNeighbors);
 				counter++;
 
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-	//	System.out.println("Reading successful");
-		return neighbors;
+		// System.out.println("Reading successful");
+		return metisHolder;
 
+	}
+
+	// Read METIS output file
+	public static ArrayList<Integer> readMETISPartition(String partitionFile, ArrayList<Integer> partitonIndex)
+			throws IOException, IOException {
+		String line = "";
+		String txtSplitBy = "\\r?\\n";
+		try (BufferedReader br = new BufferedReader(new FileReader(partitionFile))) {
+			while ((line = br.readLine()) != null) {
+				String[] record = line.split(txtSplitBy);
+
+				partitonIndex.add(Integer.parseInt(record[0]));
+
+			}
+
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return partitonIndex;
 	}
 
 }
