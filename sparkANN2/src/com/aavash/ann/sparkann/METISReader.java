@@ -3,8 +3,11 @@ package com.aavash.ann.sparkann;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
-
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -27,9 +30,10 @@ public class METISReader {
 		ClassTag<Double> doubleTag = scala.reflect.ClassTag$.MODULE$.apply(Double.class);
 
 		// SparkANN/METISGraph/MetisTinyGraph
-		// String metisInputGraph = "Metisgraph/metis.txt";
-		String metisInputGraph = "Metisgraph/Tinygraph.txt";
-		String metisPartitionOutputFile = "PartitionDataset/tg_part.txt";
+		String metisInputGraph = "Metisgraph/metis.txt";
+		// String metisInputGraph = "Metisgraph/Tinygraph.txt";
+		// String metisPartitionOutputFile = "PartitionDataset/tg_part.txt";
+		String metisPartitionOutputFile = "PartitionDataset/metis.txt";
 		// Tuple2<Object,List<Integer>> metisHolder1=new
 		// Tuple2<Object,List<Integer>>(metisHolder1, null);
 		Map<Object, List<Integer>> metisGraph = new HashMap<Object, List<Integer>>();
@@ -57,12 +61,12 @@ public class METISReader {
 
 		Map<Integer, Map<Object, List<Integer>>> metisGraphWithPartIndex = new HashMap<Integer, Map<Object, List<Integer>>>();
 
-		for (Object key : metisGraph.keySet()) {
-			System.out.println(key + " " + metisGraph.get(key));
-		}
-		for (Integer partIndex : partitionIndex) {
-			System.out.println(partIndex);
-		}
+//		for (Object key : metisGraph.keySet()) {
+//			System.out.println(key + " " + metisGraph.get(key));
+//		}
+//		for (Integer partIndex : partitionIndex) {
+//			System.out.println(partIndex);
+//		}
 
 		// Using the partitionOutput as key: this overrwrites the value with same key
 		for (Integer index : partitionIndex) {
@@ -95,8 +99,15 @@ public class METISReader {
 			counter++;
 
 		}
-		for (Map<Object, List<Integer>> map1 : metisGraphWithPartIndex2.keySet()) {
-			System.out.println(map1 + " " + metisGraphWithPartIndex2.get(map1));
+//		for (Map<Object, List<Integer>> map1 : metisGraphWithPartIndex2.keySet()) {
+//			System.out.println(map1 + " " + metisGraphWithPartIndex2.get(map1));
+//		}
+
+		Map<Map<Object, List<Integer>>, Integer> metisGraphWithPartitionIndex = Utilsmanagement
+				.sortByValue(metisGraphWithPartIndex2);
+
+		for (Map<Object, List<Integer>> map1 : metisGraphWithPartitionIndex.keySet()) {
+			System.out.println(map1 + " " + metisGraphWithPartitionIndex.get(map1));
 		}
 
 	}

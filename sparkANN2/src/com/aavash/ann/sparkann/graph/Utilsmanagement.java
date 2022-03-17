@@ -7,7 +7,10 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -229,6 +232,26 @@ public class Utilsmanagement {
 			e.printStackTrace();
 		}
 		return partitonIndex;
+	}
+
+	// Sort the HashMap by values using java 8 lambdas.
+	public static Map<Map<Object, List<Integer>>, Integer> sortByValue(Map<Map<Object, List<Integer>>, Integer> hm) {
+
+		// Create a list from elements of map
+		List<Map.Entry<Map<Object, List<Integer>>, Integer>> list = new LinkedList<Map.Entry<Map<Object, List<Integer>>, Integer>>(
+				hm.entrySet());
+
+		// sort the list using lambda expression
+		Collections.sort(list, (i1, i2) -> i1.getValue().compareTo(i2.getValue()));
+
+		// put the data from sorted list to hashmap
+		Map<Map<Object, List<Integer>>, Integer> temp = new LinkedHashMap<Map<Object, List<Integer>>, Integer>();
+		for (Map.Entry<Map<Object, List<Integer>>, Integer> aa : list) {
+			temp.put(aa.getKey(), aa.getValue());
+
+		}
+		return temp;
+
 	}
 
 }
