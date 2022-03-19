@@ -3,111 +3,78 @@ package com.aavash.ann.sparkann;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
+
 import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
+
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
+import com.google.common.collect.LinkedHashMultimap;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+
 import com.aavash.ann.sparkann.graph.Utilsmanagement;
+
 import scala.Tuple2;
-import scala.reflect.ClassTag;
 
 public class METISReader {
 
+	@SuppressWarnings("unchecked")
 	public static <T> void main(String[] args) throws IOException, IOException {
 
 		SparkConf conf = new SparkConf().setMaster("local[2]").setAppName("Graph");
-		JavaSparkContext javaSparkContext = new JavaSparkContext(conf);
-		ClassTag<String> stringTag = scala.reflect.ClassTag$.MODULE$.apply(String.class);
-		ClassTag<Integer> intTag = scala.reflect.ClassTag$.MODULE$.apply(Integer.class);
-		ClassTag<Double> doubleTag = scala.reflect.ClassTag$.MODULE$.apply(Double.class);
+		try (JavaSparkContext javaSparkContext = new JavaSparkContext(conf)) {
+			// SparkANN/METISGraph/MetisTinyGraph
+			// String metisInputGraph = "Metisgraph/metis.txt";
+			// String metisPartitionOutputFile = "PartitionDataset/metis.txt";
+			String metisInputGraph = "Metisgraph/Tinygraph.txt";
+			String metisPartitionOutputFile = "PartitionDataset/tg_part.txt";
 
-		// SparkANN/METISGraph/MetisTinyGraph
-		String metisInputGraph = "Metisgraph/metis.txt";
-		// String metisInputGraph = "Metisgraph/Tinygraph.txt";
-		// String metisPartitionOutputFile = "PartitionDataset/tg_part.txt";
-		String metisPartitionOutputFile = "PartitionDataset/metis.txt";
-		// Tuple2<Object,List<Integer>> metisHolder1=new
-		// Tuple2<Object,List<Integer>>(metisHolder1, null);
-		Map<Object, List<Integer>> metisGraph = new HashMap<Object, List<Integer>>();
-		metisGraph = Utilsmanagement.readMETISInputGraph(metisInputGraph, metisGraph);
-		List<Tuple2<Object, List<Integer>>> mapMetisGraph = new ArrayList(metisGraph.size());
-
-		ArrayList<Integer> partitionIndex = new ArrayList<Integer>();
-		partitionIndex = Utilsmanagement.readMETISPartition(metisPartitionOutputFile, partitionIndex);
-
-		// Iterator<Object> itr = metisGraph.keySet().iterator();
-		for (Object key : metisGraph.keySet()) {
-			List<Integer> neighboringNodes = new ArrayList<Integer>();
-			for (int i = 0; i < metisGraph.get(key).size(); i++) {
-				neighboringNodes.add(metisGraph.get(key).get(i));
-			}
-			mapMetisGraph.add(new Tuple2(key, neighboringNodes));
-			// System.out.println(key + " " + metisHolder.get(key));
-
-		}
-		JavaPairRDD<Object, List<Integer>> mapMetisGraphRDD = javaSparkContext.parallelizePairs(mapMetisGraph);
-		// mapMetisGraphRDD.foreach(x -> System.out.println(x._1 + " " + x._2()));
-
-		JavaRDD<Integer> mapMetisPartitionRDD = javaSparkContext.parallelize(partitionIndex);
-		// mapMetisPartition.foreach(x -> System.out.println(x));
-
-		Map<Integer, Map<Object, List<Integer>>> metisGraphWithPartIndex = new HashMap<Integer, Map<Object, List<Integer>>>();
-
-//		for (Object key : metisGraph.keySet()) {
-//			System.out.println(key + " " + metisGraph.get(key));
-//		}
-//		for (Integer partIndex : partitionIndex) {
-//			System.out.println(partIndex);
-//		}
-
-		// Using the partitionOutput as key: this overrwrites the value with same key
-		for (Integer index : partitionIndex) {
-
+			// 1. Read METIS graph input
+			Map<Object, List<Integer>> metisGraph = new HashMap<Object, List<Integer>>();
+			metisGraph = Utilsmanagement.readMETISInputGraph(metisInputGraph, metisGraph);
+			// 1.2 Creating RDD of the metisGraph
+			List<Tuple2<Object, List<Integer>>> mapMetisGraph = new ArrayList(metisGraph.size());
 			for (Object key : metisGraph.keySet()) {
-				Map<Object, List<Integer>> nodesAndNeighbors = new HashMap<Object, List<Integer>>();
-				if (!metisGraphWithPartIndex.containsKey(index)) {
-					nodesAndNeighbors.put(key, metisGraph.get(key));
-					metisGraphWithPartIndex.put(index, nodesAndNeighbors);
-
-				} else {
-					nodesAndNeighbors.put(key, metisGraph.get(key));
-					metisGraphWithPartIndex.put(index, nodesAndNeighbors);
-
+				List<Integer> neighboringNodes = new ArrayList<Integer>();
+				for (int i = 0; i < metisGraph.get(key).size(); i++) {
+					neighboringNodes.add(metisGraph.get(key).get(i));
 				}
+				mapMetisGraph.add(new Tuple2(key, neighboringNodes));
+				// System.out.println(key + " " + metisHolder.get(key));
 
 			}
+			JavaPairRDD<Object, List<Integer>> mapMetisGraphRDD = javaSparkContext.parallelizePairs(mapMetisGraph);
+			// mapMetisGraphRDD.foreach(x -> System.out.println(x._1 + " " + x._2()));
 
-		}
+			// 2. Read the output of METIS as partitionFile
+			ArrayList<Integer> partitionIndex = new ArrayList<Integer>();
+			partitionIndex = Utilsmanagement.readMETISPartition(metisPartitionOutputFile, partitionIndex);
+			// 2.1 Create the RDD of the List.
+			JavaRDD<Integer> mapMetisPartitionRDD = javaSparkContext.parallelize(partitionIndex);
+			// mapMetisPartition.foreach(x -> System.out.println(x));
 
-		// Using the metisInputGraph as key. Change of key doesn't affect.
-		Map<Map<Object, List<Integer>>, Integer> metisGraphWithPartIndex2 = new HashMap<Map<Object, List<Integer>>, Integer>();
+			// 3. Storing the partitionIndex and metisGraphInput in the same
+			// LinkedHashMultiMap.
+			LinkedHashMultimap<Object, Map<Object, List<Integer>>> metisGraphWithPartitionIndex = LinkedHashMultimap
+					.create();
+			for (int i = 0; i < partitionIndex.size(); i++) {
+				Map<Object, List<Integer>> nodesAndNeighbors = new HashMap<Object, List<Integer>>();
+				nodesAndNeighbors.put(metisGraph.keySet().toArray()[i],
+						(List<Integer>) metisGraph.values().toArray()[i]);
+				metisGraphWithPartitionIndex.put(partitionIndex.get(i), nodesAndNeighbors);
+			}
+			
+			System.out.println(metisGraphWithPartitionIndex);
 
-		int counter = 0;
-		for (Object key : metisGraph.keySet()) {
-			Map<Object, List<Integer>> nodesAndNeighbors = new HashMap<Object, List<Integer>>();
-			nodesAndNeighbors.put(key, metisGraph.get(key));
-			int indexOfPartition = partitionIndex.get(counter);
-			metisGraphWithPartIndex2.put(nodesAndNeighbors, indexOfPartition);
-			counter++;
+			// 4. Creating an RDD of the metisGraphWithPartitionIndex.
+			List<Tuple2<Object, Map<Integer, List<Integer>>>> mapMetisGraphWithPartitionIndexR = new ArrayList<>(
+					metisGraphWithPartitionIndex.size());
 
-		}
-//		for (Map<Object, List<Integer>> map1 : metisGraphWithPartIndex2.keySet()) {
-//			System.out.println(map1 + " " + metisGraphWithPartIndex2.get(map1));
-//		}
-
-		Map<Map<Object, List<Integer>>, Integer> metisGraphWithPartitionIndex = Utilsmanagement
-				.sortByValue(metisGraphWithPartIndex2);
-
-		for (Map<Object, List<Integer>> map1 : metisGraphWithPartitionIndex.keySet()) {
-			System.out.println(map1 + " " + metisGraphWithPartitionIndex.get(map1));
 		}
 
 	}
