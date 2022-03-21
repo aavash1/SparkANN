@@ -29,10 +29,10 @@ public class METISReader {
 		SparkConf conf = new SparkConf().setMaster("local[2]").setAppName("Graph");
 		try (JavaSparkContext javaSparkContext = new JavaSparkContext(conf)) {
 			// SparkANN/METISGraph/MetisTinyGraph
-			// String metisInputGraph = "Metisgraph/metis.txt";
-			// String metisPartitionOutputFile = "PartitionDataset/metis.txt";
-			String metisInputGraph = "Metisgraph/Tinygraph.txt";
-			String metisPartitionOutputFile = "PartitionDataset/tg_part.txt";
+			 String metisInputGraph = "Metisgraph/metis.txt";
+			 String metisPartitionOutputFile = "PartitionDataset/metis.txt";
+			//String metisInputGraph = "Metisgraph/Tinygraph.txt";
+			//String metisPartitionOutputFile = "PartitionDataset/tg_part.txt";
 
 			// 1. Read METIS graph input
 			Map<Object, List<Integer>> metisGraph = new HashMap<Object, List<Integer>>();

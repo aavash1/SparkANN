@@ -195,11 +195,11 @@ public class Utilsmanagement {
 				int textLength = line.split(txtSplitBy).length;
 				List<Integer> adjacentNeighbors = new ArrayList<Integer>();
 				for (int i = 0; i < textLength; i++) {
-					if (record[i] == " ") {
-						adjacentNeighbors.add(Integer.parseInt(record[i + 1]));
+					if (record[i] != "") {
+						adjacentNeighbors.add(Integer.parseInt(record[i]));
 
 					} else {
-						adjacentNeighbors.add(Integer.parseInt(record[i]));
+						adjacentNeighbors.add(Integer.parseInt(record[i + 1]));
 					}
 
 				}
