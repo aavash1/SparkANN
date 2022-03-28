@@ -180,8 +180,8 @@ public class Utilsmanagement {
 	}
 
 	// Read METIS Input type
-	public static Map<Object, List<Integer>> readMETISInputGraph(String metisInput,
-			Map<Object, List<Integer>> metisHolder) {
+	public static Map<Integer, List<Integer>> readMETISInputGraph(String metisInput,
+			Map<Integer, List<Integer>> metisHolder) {
 		String line = "";
 		String txtSplitBy = " ";
 //		boolean removedBOM = false;
@@ -203,7 +203,7 @@ public class Utilsmanagement {
 					}
 
 				}
-				metisHolder.put(counter, adjacentNeighbors);
+				metisHolder.put((int) counter, adjacentNeighbors);
 				counter++;
 
 			}
