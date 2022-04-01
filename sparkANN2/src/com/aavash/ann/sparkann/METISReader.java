@@ -107,6 +107,8 @@ public class METISReader {
 
 			System.out.println(result.collect());
 
+			System.out.println("Num partitions " + result.getNumPartitions());
+
 		}
 
 	}

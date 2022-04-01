@@ -11,6 +11,8 @@ public class EdgeNetwork implements Serializable {
 	private int source_id;
 	private int destination_id;
 	private double edge_length;
+	private int bridge_edgeId;
+	private boolean isBridgeEdge;
 
 	public int getEdge_id() {
 		return edge_id;
@@ -42,6 +44,18 @@ public class EdgeNetwork implements Serializable {
 
 	public void setEdge_length(double edge_length) {
 		this.edge_length = edge_length;
+	}
+
+	public void setBridgeEdgeId(int bridgeEdge_Id) {
+		this.bridge_edgeId = bridgeEdge_Id;
+	}
+
+	public int getBridgeEdgeId() {
+		return bridge_edgeId;
+	}
+
+	public boolean isBridgeEdge(int edgeId) {
+		return true;
 	}
 
 	@Override

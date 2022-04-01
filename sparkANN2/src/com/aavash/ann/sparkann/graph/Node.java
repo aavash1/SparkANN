@@ -4,6 +4,8 @@ public class Node {
 	private int Node_Id;
 	private double longitude;
 	private double latitude;
+	public int borderNode_Id;
+	private boolean isBorderNode;
 
 	public int getNode_Id() {
 		return Node_Id;
@@ -27,6 +29,19 @@ public class Node {
 
 	public void setLatitude(double latitude) {
 		this.latitude = latitude;
+	}
+
+	public void setBorderNodeId(int borderNodeId) {
+		this.borderNode_Id = borderNodeId;
+	}
+
+	public int getBorderNodeId() {
+		return borderNode_Id;
+	}
+
+	public boolean checkIfIsBorder(int nodeId) {
+		return false;
+
 	}
 
 	@Override
