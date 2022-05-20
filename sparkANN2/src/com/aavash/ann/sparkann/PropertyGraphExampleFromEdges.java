@@ -15,11 +15,11 @@ import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.graphx.Edge;
 import org.apache.spark.graphx.Graph;
-
+import org.apache.spark.graphx.GraphOps;
 import org.apache.spark.graphx.PartitionStrategy;
 import org.apache.spark.storage.StorageLevel;
 
-import com.aavash.ann.sparkann.graph.Utilsmanagement;
+import com.ann.sparkann.framework.*;
 
 import scala.Tuple2;
 import scala.reflect.ClassTag;
@@ -27,7 +27,7 @@ import scala.reflect.ClassTag;
 public class PropertyGraphExampleFromEdges {
 	public static <T> void main(String[] args) throws IOException {
 
-		SparkConf conf = new SparkConf().setMaster("local[2]").setAppName("Graph");
+		SparkConf conf = new SparkConf().setMaster("local").setAppName("graph");
 //
 //		SparkConf conf = new SparkConf().setMaster("spark://210.107.197.209:7077").setAppName("graph")
 //				.set("spark.blockManager.port", "10025").set("spark.driver.blockManager.port", "10026")
@@ -56,17 +56,10 @@ public class PropertyGraphExampleFromEdges {
 		String metisInputGraph = "Metisgraph/Tinygraph.txt";
 		HashMap<Object, ArrayList<Integer>> metisHolder = new HashMap<Object, ArrayList<Integer>>();
 
-		// Edge datset contains edgeId|SourceId|DestinationId|EdgeLength
-		// edges.add(new Edge<Double>(1, 2, 3.5));
-		// edges.add(new Edge<Double>(2, 3, 4.8));
-		// edges.add(new Edge<Double>(1, 3, 6.5));
-		// edges.add(new Edge<Double>(4, 3, 1.8));
-		// edges.add(new Edge<Double>(4, 5, 9.6));
-		// edges.add(new Edge<Double>(2, 5, 3.3));
-
-		Utilsmanagement.readTextEdgeFile(edges, edgesInputFileName);
-		Utilsmanagement.readTextNodeFile(nodes, nodesInputFileName);
-		//metisHolder = Utilsmanagement.readMETISInputGraph(metisInputGraph, metisHolder);
+		UtilitiesMgmt.readTextEdgeFile(edges, edgesInputFileName);
+		UtilitiesMgmt.readTextNodeFile(nodes, nodesInputFileName);
+		// metisHolder = Utilsmanagement.readMETISInputGraph(metisInputGraph,
+		// metisHolder);
 
 		JavaRDD<Edge<Double>> edgeRDD = javaSparkContext.parallelize(edges);
 		JavaRDD<Tuple2<Object, String>> nodeRDD = javaSparkContext.parallelize(nodes);
@@ -81,7 +74,7 @@ public class PropertyGraphExampleFromEdges {
 
 		graph.edges().toJavaRDD().collect().forEach(System.out::println);
 		graph.vertices().toJavaRDD().collect().forEach(System.out::println);
-		graph.edges().toJavaRDD().collect();
+
 //
 //		 graph.edges().toJavaRDD().foreach(x -> System.out.println("SourceNode: " +
 //		 x.srcId() + " , DestinationNode: "

@@ -4,11 +4,14 @@ import java.awt.List;
 import java.util.ArrayList;
 import java.util.Collection;
 
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.graphx.Edge;
 import org.apache.spark.graphx.Graph;
+import org.apache.spark.graphx.PartitionStrategy;
 import org.apache.spark.storage.StorageLevel;
 
 import com.aavash.ann.sparkann.graph.EdgeNetwork;
@@ -20,8 +23,16 @@ import scala.reflect.ClassTag;
 
 public class GraphDatasetParsingFile {
 	public static void main(String[] args) {
+		
+		//Logger.getLogger("org.apache").setLevel(Level.WARN);
 
-		SparkConf conf = new SparkConf().setMaster("local").setAppName("GraphFileReadClass");
+		// SparkConf conf = new
+		// SparkConf().setMaster("local").setAppName("GraphFileReadClass");
+		SparkConf conf = new SparkConf().setMaster("local").setAppName("Graph")
+				.set("spark.shuffle.service.enabled", "false").set("spark.driver.blockManager.port", "10026")
+				.set("spark.driver.port", "10027").set("spark.cores.max", "3").set("spark.executor.memory", "1G")
+				.set("spark.driver.host", "210.107.197.209").set("spark.shuffle.service.enabled", "false")
+				.set("spark.dynamicAllocation.enabled", "false").set("spark.shuffle.blockTransferService", "nio");
 		JavaSparkContext javaSparkContext = new JavaSparkContext(conf);
 		ClassTag<String> stringTag = scala.reflect.ClassTag$.MODULE$.apply(String.class);
 		ClassTag<String> intTag = scala.reflect.ClassTag$.MODULE$.apply(Integer.class);
@@ -55,7 +66,7 @@ public class GraphDatasetParsingFile {
 			}
 			return nodeList.iterator();
 		});
-		nodesPart.foreach(np -> System.out.println(np.toString()));
+		// nodesPart.foreach(np -> System.out.println(np.toString()));
 		JavaRDD<Tuple2<Integer, Integer>> nodesRDD = javaSparkContext.parallelize(nodes);
 		nodesRDD.foreach(data -> System.out.print("Node details: "));
 
@@ -76,11 +87,23 @@ public class GraphDatasetParsingFile {
 			}
 			return edgeList.iterator();
 		});
+	//	edgesPart.collect().forEach(System.out::println);
 		JavaRDD<Edge<Double>> edgesRDD = javaSparkContext.parallelize(edges);
-
+		
+		
+		
 		Graph<String, Double> graph = Graph.fromEdges(edgesRDD.rdd(), " ", StorageLevel.MEMORY_ONLY(),
 				StorageLevel.MEMORY_ONLY(), stringTag, doubleTag);
-		graph.vertices().toJavaRDD().collect().forEach(System.out::println);
+		 graph.edges().toJavaRDD().foreach(x -> System.out.println("SourceNode: " +
+		 x.srcId() + " , DestinationNode: "
+		 + x.dstId() + ", Distance SRC-DEST: " + x.attr$mcD$sp()));
+		 //graph.partitionBy(x->new PartitionStrategy{})
+		//System.out.println("Edge Size: " + graph.edges().count());
+
+//		graph.partitionBy(PartitionStrategy.RandomVertexCut$.MODULE$);
+//		PartitionStrategy.fromString(graph.toString());
+//		Graph<Object, Double> connectedComponents = graph.ops().connectedComponents();
+//		connectedComponents.vertices().toJavaRDD().collect().forEach(System.out::println);
 
 	}
 }

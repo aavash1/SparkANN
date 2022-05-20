@@ -1,4 +1,4 @@
-package com.aavash.ann.sparkann.graph;
+package com.ann.sparkann.framework;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -14,12 +14,15 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
+
 import org.apache.spark.graphx.Edge;
 import org.apache.spark.graphx.Graph;
 
 import scala.Tuple2;
 
-public class Utilsmanagement {
+public class UtilitiesMgmt {
 	final static String txtSplitBy = " ";
 
 	public static List<Edge<Double>> readTextEdgeFile(List<Edge<Double>> edgeList, String txtFileName)
@@ -80,10 +83,88 @@ public class Utilsmanagement {
 
 	}
 
+	public static ImmutableMap<Long, Integer> readTextNodeReturnImtmap(String txtFileName) {
+		Map<Long, Integer> map = new HashMap<>();
+		Long counter = 1L;
+
+		String line = "";
+		String txtSplitBy = " ";
+		boolean removedBOM = false;
+		try (BufferedReader br = new BufferedReader(new FileReader(txtFileName))) {
+			while ((line = br.readLine()) != null) {
+				String[] record = line.split(txtSplitBy);
+				if (record.length == 3) {
+//					if (!removedBOM && record[0] != "0") {
+//
+//						record[0] = String.valueOf(0);
+//						removedBOM = true;
+//
+//					}
+					map.put(counter, Integer.parseInt(record[0]));
+					counter++;
+
+				}
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		ImmutableMap<Long, Integer> toReturn = ImmutableMap.<Long, Integer>builder().putAll(map).build();
+
+		return toReturn;
+
+	}
+
+	public static List<Tuple2<Object, Double>> getMapKeysCreateList(Map<Long, Integer> inputMap) {
+		List<Tuple2<Object, Double>> vertices = new ArrayList<Tuple2<Object, Double>>();
+
+		for (Long key : inputMap.keySet()) {
+			if (key == 1l) {
+				vertices.add(new Tuple2<Object, Double>(key, 0.0));
+			} else {
+				vertices.add(new Tuple2<Object, Double>(key, Double.MAX_VALUE));
+			}
+
+		}
+
+		return vertices;
+	}
+
+	public static List<Edge<Double>> readTextEdgeFileD(String txtFileName) throws FileNotFoundException, IOException {
+		String line = "";
+		String txtSplitBy = " ";
+		boolean removedBOM = false;
+		List<Edge<Double>> edgeList = new ArrayList<Edge<Double>>();
+		try (BufferedReader br = new BufferedReader(new FileReader(txtFileName))) {
+			while ((line = br.readLine()) != null) {
+				String[] record = line.split(txtSplitBy);
+				if (record.length == 4) {
+					if (!removedBOM && record[0] != "0") {
+
+						// record[0] = String.valueOf(0);
+						removedBOM = true;
+
+					}
+
+					edgeList.add(new Edge<Double>(Long.valueOf(record[1]), Long.valueOf(record[2]),
+							Double.parseDouble(record[3])));
+
+				}
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		return edgeList;
+
+	}
+
 	public Graph<String, Double> getSubgraphAfterPartition(Graph<String, Double> inputGraph, int numberOfPartition) {
 
 		return inputGraph;
 	}
+
+	// Read the text file and return the immutable map of
 
 	// txtFileName1: partition file
 	// txtFileName2: Node file

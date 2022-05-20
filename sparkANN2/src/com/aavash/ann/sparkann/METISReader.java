@@ -2,6 +2,7 @@
 package com.aavash.ann.sparkann;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 
 import java.util.HashMap;
@@ -12,23 +13,31 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import com.google.common.collect.LinkedHashMultimap;
+
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.function.FlatMapFunction;
 
 import com.aavash.ann.sparkann.graph.CustomPartitioner;
-import com.aavash.ann.sparkann.graph.Utilsmanagement;
+import com.ann.sparkann.framework.Graph;
+import com.ann.sparkann.framework.Node;
+import com.ann.sparkann.framework.UtilitiesMgmt;
+import com.ann.sparkann.framework.UtilsManagement;
 
 import scala.Tuple2;
 
-public class METISReader {
+public class METISReader implements Serializable {
 
 	@SuppressWarnings("unchecked")
 	public static <T> void main(String[] args) throws IOException, IOException {
+		Logger.getLogger("org.apache").setLevel(Level.WARN);
 
-		// SparkConf conf = new SparkConf().setMaster("local[2]").setAppName("Graph");
-		SparkConf conf = new SparkConf().setMaster("local").setAppName("Graph")
+		SparkConf conf = new SparkConf().setMaster("local[2]").setAppName("Graph");
+		SparkConf conf1 = new SparkConf().setMaster("local").setAppName("Graph")
 				.set("spark.shuffle.service.enabled", "false").set("spark.driver.blockManager.port", "10026")
 				.set("spark.driver.port", "10027").set("spark.cores.max", "3").set("spark.executor.memory", "1G")
 				.set("spark.driver.host", "210.107.197.209").set("spark.shuffle.service.enabled", "false")
@@ -40,9 +49,23 @@ public class METISReader {
 			String metisInputGraph = "Metisgraph/Tinygraph.txt";
 			String metisPartitionOutputFile = "PartitionDataset/tg_part.txt";
 
+			// To load the Graph actually
+
+			String nodeDatasetFile = "Metisgraph/TinygraphNodes.csv";
+			String edgeDataSetFile = "Metisgraph/TinygraphEdges.csv";
+			Graph inputGraph = UtilsManagement.readEdgeFileReturnGraph(edgeDataSetFile);
+
+			ArrayList<Node> inputGraphNodesInfo = UtilsManagement.readNodeFile(nodeDatasetFile);
+			inputGraph.setNodesWithInfo(inputGraphNodesInfo);
+
+			// inputGraph.printNodesInfo();
+
+			// inputGraph.printEdgesInfo();
+			// System.out.println("NodeId: " + inputGraph.getNode(2));
+
 			// 1. Read METIS graph input
 			Map<Integer, List<Integer>> metisGraph = new HashMap<Integer, List<Integer>>();
-			metisGraph = Utilsmanagement.readMETISInputGraph(metisInputGraph, metisGraph);
+			metisGraph = UtilitiesMgmt.readMETISInputGraph(metisInputGraph, metisGraph);
 			// 1.2 Creating RDD of the metisGraph
 			List<Tuple2<Integer, List<Integer>>> mapMetisGraph = new ArrayList(metisGraph.size());
 			for (Object key : metisGraph.keySet()) {
@@ -59,7 +82,7 @@ public class METISReader {
 
 			// 2. Read the output of METIS as partitionFile
 			ArrayList<Integer> partitionIndex = new ArrayList<Integer>();
-			partitionIndex = Utilsmanagement.readMETISPartition(metisPartitionOutputFile, partitionIndex);
+			partitionIndex = UtilitiesMgmt.readMETISPartition(metisPartitionOutputFile, partitionIndex);
 			// 2.1 Create the RDD of the List.
 			JavaRDD<Integer> mapMetisPartitionRDD = javaSparkContext.parallelize(partitionIndex);
 			// mapMetisPartition.foreach(x -> System.out.println(x));
