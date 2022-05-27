@@ -143,7 +143,7 @@ public class UtilsManagement {
 				if (record.length == 3) {
 					if (!removedBOM && record[0] != "0") {
 
-						//record[0] = String.valueOf(0);
+						// record[0] = String.valueOf(0);
 						removedBOM = true;
 
 					}
@@ -164,7 +164,7 @@ public class UtilsManagement {
 	}
 
 	// Method to read the vertex files from the datasets
-	public static boolean readNodeFile(Graph graph, String csvFilename) {
+	public static boolean readNodeFile(CoreGraph graph, String csvFilename) {
 		String line = "";
 		ArrayList<Node> listOfNodes = new ArrayList<Node>();
 		boolean removedBOM = false;
@@ -196,7 +196,38 @@ public class UtilsManagement {
 	}
 
 	// Method to read the node Files "TXT" from the dataset
-	public static boolean readTxtNodeFile(Graph graph, String txtFilename) {
+	public static ArrayList<Node> readTxtNodeFile(String txtFileName) {
+		String line = "";
+		ArrayList<Node> listOfNodes = new ArrayList<Node>();
+		boolean removedBOM = false;
+		try (BufferedReader br = new BufferedReader(new FileReader(txtFileName))) {
+			while ((line = br.readLine()) != null) {
+				String[] record = line.split(txtSplitBy);
+
+				if (record.length == 3) {
+					if (!removedBOM && record[0] != "0") {
+
+						// record[0] = String.valueOf(0);
+						removedBOM = true;
+
+					}
+					Node v = new Node();
+					v.setNodeId(Integer.parseInt(record[0]));
+					v.setLongitude(Double.parseDouble(record[1]));
+					v.setLatitude(Double.parseDouble(record[2]));
+					listOfNodes.add(v);
+				}
+
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		return listOfNodes;
+
+	}
+
+	public static boolean readTxtNodeFile(CoreGraph graph, String txtFilename) {
 		String line = "";
 		ArrayList<Node> listOfNodes = new ArrayList<Node>();
 		boolean removedBOM = false;
@@ -294,8 +325,8 @@ public class UtilsManagement {
 
 	}
 
-	public static Graph readEdgeFileReturnGraph(String csvFilename) {
-		Graph graph = new Graph();
+	public static CoreGraph readEdgeFileReturnGraph(String csvFilename) {
+		CoreGraph graph = new CoreGraph();
 
 		String line = "";
 		boolean removedBOM = false;
@@ -306,7 +337,7 @@ public class UtilsManagement {
 
 					if (!removedBOM && record[0] != "0") {
 
-						//record[0] = String.valueOf(0);
+						// record[0] = String.valueOf(0);
 						removedBOM = true;
 
 					}
@@ -322,7 +353,35 @@ public class UtilsManagement {
 
 	}
 
-	public static boolean readEdgeFile(Graph graph, String csvFilename) {
+	public static CoreGraph readEdgeTxtFileReturnGraph(String txtFileName) {
+		CoreGraph graph = new CoreGraph();
+
+		String line = "";
+		boolean removedBOM = false;
+		try (BufferedReader br = new BufferedReader(new FileReader(txtFileName))) {
+			while ((line = br.readLine()) != null) {
+				String[] record = line.split(txtSplitBy);
+				if (record.length == 4) {
+
+					if (!removedBOM && record[0] != "0") {
+
+						// record[0] = String.valueOf(0);
+						removedBOM = true;
+
+					}
+					graph.addEdge(Integer.parseInt(record[0]), Integer.parseInt(record[1]), Integer.parseInt(record[2]),
+							Double.parseDouble(record[3]));
+				}
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		return graph;
+
+	}
+
+	public static boolean readEdgeFile(CoreGraph graph, String csvFilename) {
 		String line = "";
 		ArrayList<Edge> listEd = new ArrayList<Edge>();
 		boolean removedBOM = false;
@@ -356,7 +415,7 @@ public class UtilsManagement {
 	}
 
 	// Method to read the txtEdge File
-	public static boolean readTxtEdgeFile(Graph graph, String txtFilename) {
+	public static boolean readTxtEdgeFile(CoreGraph graph, String txtFilename) {
 		String line = "";
 		int counter = 0;
 		ArrayList<Edge> listEd = new ArrayList<Edge>();
@@ -391,8 +450,8 @@ public class UtilsManagement {
 
 	}
 
-	public static Graph readMergedObjectFile(String fileName) {
-		Graph graph = new Graph();
+	public static CoreGraph readMergedObjectFile(String fileName) {
+		CoreGraph graph = new CoreGraph();
 		String line = "";
 		int startNode = 0, endNode = 0;
 		// int objId = 0; // currently not used
@@ -477,7 +536,7 @@ public class UtilsManagement {
 	 * " is written Successfully"); writer.close(); } catch (IOException e) {
 	 * e.printStackTrace(); } }
 	 */
-	public static void writeNaiveAndClusteredANNTestResult(Graph graph, int totalNumOfNodeClusters,
+	public static void writeNaiveAndClusteredANNTestResult(CoreGraph graph, int totalNumOfNodeClusters,
 			int totalNumOfObjectClusters, double timeElapsedToComputeANNNAive,
 			double timeElapsedToComputeANNCLustered) {
 
@@ -521,7 +580,7 @@ public class UtilsManagement {
 
 	}
 
-	public static void writeFinalEvaluationResult(Graph graph, String fileName, double timeElapsedToComputeANNNAive,
+	public static void writeFinalEvaluationResult(CoreGraph graph, String fileName, double timeElapsedToComputeANNNAive,
 			double timeElapsedToComputeANNCLustered, String distributionCategory) {
 
 		String dateTime = getNormalDateTime();
@@ -547,7 +606,7 @@ public class UtilsManagement {
 
 	}
 
-	public static void writeFinalEvaluationResultForThreeMethods(Graph graph, String fileName,
+	public static void writeFinalEvaluationResultForThreeMethods(CoreGraph graph, String fileName,
 			double timeElapsedToComputeANNNAive, double timeElapsedToComputeANNCLustered,
 			double timeElapsedToComputeVIVET, String distributionCategory) {
 
@@ -575,8 +634,8 @@ public class UtilsManagement {
 
 	}
 
-	public static void writeFinalEvaluationResult(Graph graph, String fileName, String usedAlgorithm, int queryObjSize,
-			int dataObjSize, String distribution, double timeElapsedToCompute) {
+	public static void writeFinalEvaluationResult(CoreGraph graph, String fileName, String usedAlgorithm,
+			int queryObjSize, int dataObjSize, String distribution, double timeElapsedToCompute) {
 
 		String dateTime = getNormalDateTime();
 
@@ -602,7 +661,7 @@ public class UtilsManagement {
 
 	}
 
-	public static void writeObjStats(Graph graph) {
+	public static void writeObjStats(CoreGraph graph) {
 
 		String evaluationResultTxtFile = "Statistics/objsOnEdgeInformation-" + graph.getDatasetName() + " "
 				+ getNormalDateTime() + ".txt";
@@ -797,7 +856,7 @@ public class UtilsManagement {
 	}
 
 	// Convert Node dataset with nodeId starting from 1.
-	public static void convertNodeToTXTFile(Graph graph, ArrayList<Node> nodelist, String nodeFileName) {
+	public static void convertNodeToTXTFile(CoreGraph graph, ArrayList<Node> nodelist, String nodeFileName) {
 		System.err.println("Node Id Conversion started...");
 		try {
 			FileWriter outputFile = new FileWriter(nodeFileName, true);
@@ -820,7 +879,7 @@ public class UtilsManagement {
 	}
 
 	// for CSV file
-	public static void convertNodeToCSVFile(Graph graph, ArrayList<Node> nodelist, String nodeFileName) {
+	public static void convertNodeToCSVFile(CoreGraph graph, ArrayList<Node> nodelist, String nodeFileName) {
 		System.err.println("Node Id Conversion started...");
 		try {
 			FileWriter outputFile = new FileWriter(nodeFileName, true);
@@ -844,7 +903,7 @@ public class UtilsManagement {
 
 	// Convert Edge dataset with edgeId starting from 1.
 	// TxtFile
-	public static void convertEdgeToTXTFile(Graph graph, ArrayList<Edge> edgeList, String graphFileName) {
+	public static void convertEdgeToTXTFile(CoreGraph graph, ArrayList<Edge> edgeList, String graphFileName) {
 		System.err.println("Edge Id Conversion started...");
 
 		try {
@@ -874,7 +933,7 @@ public class UtilsManagement {
 	}
 
 	// CSV file
-	public static void convertEdgeToCSVFile(Graph graph, ArrayList<Edge> edgeList, String graphFileName) {
+	public static void convertEdgeToCSVFile(CoreGraph graph, ArrayList<Edge> edgeList, String graphFileName) {
 		System.err.println("Edge Id Conversion started...");
 
 		try {
@@ -903,7 +962,7 @@ public class UtilsManagement {
 	}
 
 	// Convert Edge Files to GraphFile
-	public static void convertInputGraphFileToMETISFormat(Graph graph,
+	public static void convertInputGraphFileToMETISFormat(CoreGraph graph,
 			Map<Integer, Map<Integer, Double>> unsortedNodeAdjacencies, String graphFileName) {
 		System.err.println("Conversion started...");
 		Map<Integer, Map<Integer, Double>> nodeAdjacencies = new TreeMap<Integer, Map<Integer, Double>>(
@@ -1008,13 +1067,13 @@ public class UtilsManagement {
 
 	// load information of nodes from csv file and add these nodes to list of nodes
 	// in a give graph
-	public void loadNodesInfo(Graph graph, String csvFile) {
+	public void loadNodesInfo(CoreGraph graph, String csvFile) {
 		graph.setNodesWithInfo(readNodeFile(csvFile));
 	}
 
 	// load information of pois from csv file and add these pois to list of pois in
 	// a give graph
-	public void loadPoiInfo(Graph graph, String csvFile) {
+	public void loadPoiInfo(CoreGraph graph, String csvFile) {
 		graph.setObjectsWithInfo(readRoadObjFile(csvFile));
 		// graph.getPois().get(0).setPoiCategoryId(intPOICategoryId);
 	}
@@ -1297,7 +1356,7 @@ public class UtilsManagement {
 	// return objectsOnRoad;
 	// }
 
-	public static Map<Integer, ArrayList<RoadObject>> createRoadObjectsOnMap(Graph graph,
+	public static Map<Integer, ArrayList<RoadObject>> createRoadObjectsOnMap(CoreGraph graph,
 			Map<Integer, ArrayList<Double>> objectsOnRoad, boolean roadObjectType) {
 		Map<Integer, ArrayList<RoadObject>> addedRoadObjects = new HashMap<Integer, ArrayList<RoadObject>>();
 		int roadObjectCount = 1;

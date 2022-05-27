@@ -45,12 +45,12 @@ public class shortestPathDoubleWeight implements Serializable {
 
 		Logger.getLogger("org.apache.spark").setLevel(Level.WARN);
 
-		SparkConf conf1 = new SparkConf().setMaster("local[*]").setAppName("ShortestPath");
-		SparkConf conf = new SparkConf().setMaster("local").setAppName("Graph")
-				.set("spark.shuffle.service.enabled", "false").set("spark.driver.blockManager.port", "10026")
-				.set("spark.driver.port", "10027").set("spark.cores.max", "3").set("spark.executor.memory", "1G")
-				.set("spark.driver.host", "210.107.197.209").set("spark.shuffle.service.enabled", "false")
-				.set("spark.dynamicAllocation.enabled", "false").set("spark.shuffle.blockTransferService", "nio");
+		SparkConf conf = new SparkConf().setMaster("local[*]").setAppName("ShortestPath");
+//		SparkConf conf = new SparkConf().setMaster("local").setAppName("Graph")
+//				.set("spark.shuffle.service.enabled", "false").set("spark.driver.blockManager.port", "10026")
+//				.set("spark.driver.port", "10027").set("spark.cores.max", "3").set("spark.executor.memory", "1G")
+//				.set("spark.driver.host", "210.107.197.209").set("spark.shuffle.service.enabled", "false")
+//				.set("spark.dynamicAllocation.enabled", "false").set("spark.shuffle.blockTransferService", "nio");
 		JavaSparkContext jsp = new JavaSparkContext(conf);
 
 		String nodeDatasetFile = "Dataset/TinygraphNodes.txt";
@@ -71,8 +71,8 @@ public class shortestPathDoubleWeight implements Serializable {
 				scala.reflect.ClassTag$.MODULE$.apply(Double.class));
 
 		System.err.println("Create Graph from vertices and edges");
-		graph.vertices().toJavaRDD().collect().forEach(System.out::println);
-		graph.edges().toJavaRDD().collect().forEach(System.out::println);
+		// graph.vertices().toJavaRDD().collect().forEach(System.out::println);
+		// graph.edges().toJavaRDD().collect().forEach(System.out::println);
 
 		GraphOps ops = new GraphOps(graph, scala.reflect.ClassTag$.MODULE$.apply(Double.class),
 				scala.reflect.ClassTag$.MODULE$.apply(Double.class));
@@ -82,7 +82,7 @@ public class shortestPathDoubleWeight implements Serializable {
 		System.err.println("Run pregel over our graph with apply, scatter and gather functions");
 		System.out.println();
 
-		JavaRDD<Tuple2<Object, Double>> output_rdd = ops.pregel(INITIAL_VALUE, Int.MaxValue(), EdgeDirection.Out(),
+		JavaRDD<Tuple2<Object, Double>> output_rdd = ops.pregel(INITIAL_VALUE, Int.MaxValue(), EdgeDirection.Either(),
 				new VprogD(), new sendMsgD(), new mergeD(), scala.reflect.ClassTag$.MODULE$.apply(Double.class))
 				.vertices().toJavaRDD();
 

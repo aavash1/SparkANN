@@ -2,46 +2,46 @@ package com.aavash.ann.sparkann.graph;
 
 import java.io.Serializable;
 
-public class Node implements Serializable {
-	private int Node_Id;
-	private double longitude;
-	private double latitude;
+public class Vertices implements Serializable {
+	private int vertex_Id;
+	private double v_longitude;
+	private double v_latitude;
 	public int borderNode_Id;
 	private boolean isBorderNode;
 
-	public Node(int nodeId, double longitude, double latitude) {
+	public Vertices(int nodeId, double longitude, double latitude) {
 		// TODO Auto-generated constructor stub
-		this.Node_Id = nodeId;
-		this.longitude = longitude;
-		this.latitude = latitude;
+		this.vertex_Id = nodeId;
+		this.v_longitude = longitude;
+		this.v_latitude = latitude;
 	}
 
-	public Node() {
+	public Vertices() {
 
 	}
 
 	public int getNode_Id() {
-		return Node_Id;
+		return vertex_Id;
 	}
 
 	public void setNode_Id(int node_Id) {
-		Node_Id = node_Id;
+		vertex_Id = node_Id;
 	}
 
 	public double getLongitude() {
-		return longitude;
+		return v_longitude;
 	}
 
 	public void setLongitude(double longitude) {
-		this.longitude = longitude;
+		this.v_longitude = longitude;
 	}
 
 	public double getLatitude() {
-		return latitude;
+		return v_latitude;
 	}
 
 	public void setLatitude(double latitude) {
-		this.latitude = latitude;
+		this.v_latitude = latitude;
 	}
 
 	public void setBorderNodeId(int borderNodeId) {

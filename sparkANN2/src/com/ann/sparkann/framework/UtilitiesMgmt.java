@@ -14,6 +14,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import com.aavash.ann.sparkann.graph.Vertices;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
@@ -54,7 +55,37 @@ public class UtilitiesMgmt {
 
 	}
 
-	public static List<Tuple2<Object, String>> readTextNodeFile(List<Tuple2<Object, String>> nodeList,
+	public static List<Tuple2<Object, Vertices>> readTextNodeFile(List<Tuple2<Object, Vertices>> verticesList,
+			String txtFileName) throws FileNotFoundException, IOException {
+		String line = "";
+		String txtSplitBy = " ";
+		boolean removedBOM = false;
+		long counter = 0L;
+		try (BufferedReader br = new BufferedReader(new FileReader(txtFileName))) {
+			while ((line = br.readLine()) != null) {
+				String[] record = line.split(txtSplitBy);
+				if (record.length == 4) {
+					if (!removedBOM && record[0] != "0") {
+
+						record[0] = String.valueOf(0);
+						removedBOM = true;
+
+					}
+					verticesList.add(new Tuple2<Object, Vertices>(counter, new Vertices(Integer.parseInt(record[0]),
+							Double.parseDouble(record[1]), Double.parseDouble(record[2]))));
+					counter++;
+
+				}
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		return verticesList;
+
+	}
+
+	public static List<Tuple2<Object, String>> readTextNodeFile1(List<Tuple2<Object, String>> nodeList,
 			String txtFileName) throws FileNotFoundException, IOException {
 		String line = "";
 		String txtSplitBy = " ";

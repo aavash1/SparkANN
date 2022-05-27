@@ -21,19 +21,34 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.FlatMapFunction;
+import org.apache.spark.graphx.Edge;
+import org.apache.spark.graphx.Graph;
+import org.apache.spark.graphx.VertexRDD;
+import org.apache.spark.storage.StorageLevel;
 
 import com.aavash.ann.sparkann.graph.CustomPartitioner;
-import com.ann.sparkann.framework.Graph;
+import com.ann.sparkann.framework.CoreGraph;
 import com.ann.sparkann.framework.Node;
 import com.ann.sparkann.framework.UtilitiesMgmt;
 import com.ann.sparkann.framework.UtilsManagement;
 
+import com.aavash.ann.sparkann.graph.Vertices;
+import org.apache.spark.graphx.Edge;
+
 import scala.Tuple2;
+import scala.reflect.ClassTag;
 
 public class METISReader implements Serializable {
 
 	@SuppressWarnings("unchecked")
 	public static <T> void main(String[] args) throws IOException, IOException {
+
+		ClassTag<String> stringTag = scala.reflect.ClassTag$.MODULE$.apply(String.class);
+		ClassTag<Integer> intTag = scala.reflect.ClassTag$.MODULE$.apply(Integer.class);
+		ClassTag<Double> doubleTag = scala.reflect.ClassTag$.MODULE$.apply(Double.class);
+		ClassTag<Node> nodeTag = scala.reflect.ClassTag$.MODULE$.apply(Node.class);
+		ClassTag<Vertices> vertexTag = scala.reflect.ClassTag$.MODULE$.apply(Vertices.class);
+
 		Logger.getLogger("org.apache").setLevel(Level.WARN);
 
 		SparkConf conf = new SparkConf().setMaster("local[2]").setAppName("Graph");
@@ -50,10 +65,9 @@ public class METISReader implements Serializable {
 			String metisPartitionOutputFile = "PartitionDataset/tg_part.txt";
 
 			// To load the Graph actually
-
-			String nodeDatasetFile = "Metisgraph/TinygraphNodes.csv";
-			String edgeDataSetFile = "Metisgraph/TinygraphEdges.csv";
-			Graph inputGraph = UtilsManagement.readEdgeFileReturnGraph(edgeDataSetFile);
+			String nodeDatasetFile = "Dataset/TinygraphNodes.txt";
+			String edgeDataSetFile = "Dataset/TinygraphEdges.txt";
+			CoreGraph inputGraph = UtilsManagement.readEdgeFileReturnGraph(edgeDataSetFile);
 
 			ArrayList<Node> inputGraphNodesInfo = UtilsManagement.readNodeFile(nodeDatasetFile);
 			inputGraph.setNodesWithInfo(inputGraphNodesInfo);
@@ -66,6 +80,7 @@ public class METISReader implements Serializable {
 			// 1. Read METIS graph input
 			Map<Integer, List<Integer>> metisGraph = new HashMap<Integer, List<Integer>>();
 			metisGraph = UtilitiesMgmt.readMETISInputGraph(metisInputGraph, metisGraph);
+
 			// 1.2 Creating RDD of the metisGraph
 			List<Tuple2<Integer, List<Integer>>> mapMetisGraph = new ArrayList(metisGraph.size());
 			for (Object key : metisGraph.keySet()) {
@@ -115,7 +130,8 @@ public class METISReader implements Serializable {
 			JavaPairRDD<Integer, Map<Integer, List<Integer>>> metisGraphWithPartitionIndexRDD = javaSparkContext
 					.parallelizePairs(mapMetisGraphWithPartitionIndex);
 
-			metisGraphWithPartitionIndexRDD.foreach(x -> System.out.println(x._1() + " " + x._2()));
+			// metisGraphWithPartitionIndexRDD.foreach(x -> System.out.println(x._1() + " "
+			// + x._2()));
 
 			JavaPairRDD<Integer, Map<Integer, List<Integer>>> customPartitioned = metisGraphWithPartitionIndexRDD
 					.partitionBy(new CustomPartitioner(2));
@@ -128,9 +144,30 @@ public class METISReader implements Serializable {
 				return partitionCheckList.iterator();
 			}, true);
 
-			System.out.println(result.collect());
+			// System.out.println(result.collect());
 
-			System.out.println("Num partitions " + result.getNumPartitions());
+			// System.out.println("Num partitions " + result.getNumPartitions());
+
+			// Create Graph using graphX
+			List<Edge<Double>> edges = new ArrayList<>();
+			List<Tuple2<Object, Vertices>> vertex = new ArrayList<>();
+
+			UtilitiesMgmt.readTextEdgeFile(edges, edgeDataSetFile);
+			List<Tuple2<Object, Vertices>> vertices = UtilitiesMgmt.readTextNodeFile(vertex, nodeDatasetFile);
+
+			JavaRDD<Edge<Double>> edgeRDD = javaSparkContext.parallelize(edges);
+			JavaRDD<Tuple2<Object, Vertices>> nodeRDD = javaSparkContext.parallelize(vertices);
+
+			Graph<Vertices, Double> graph = Graph.apply(nodeRDD.rdd(), edgeRDD.rdd(), new Vertices(),
+					StorageLevel.MEMORY_ONLY(), StorageLevel.MEMORY_ONLY(), vertexTag, doubleTag);
+
+			graph.vertices().toJavaRDD().collect().forEach(System.out::println);
+			graph.edges().toJavaRDD().collect().forEach(System.out::println);
+
+//			VertexRDD<Vertices> output = graph.vertices();
+//			JavaRDD<Tuple2<Object, Vertices>> output_rdd = output.toJavaRDD();
+//			Tuple2<Object, Vertices> max_val = output_rdd.first();
+//			System.out.println(max_val._1 + " has " + max_val._2());
 
 		}
 

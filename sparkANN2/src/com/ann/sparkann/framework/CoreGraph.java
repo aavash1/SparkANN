@@ -14,7 +14,7 @@ import org.apache.commons.collections4.multimap.HashSetValuedHashMap;
 
 
 
-public class Graph implements Serializable {
+public class CoreGraph implements Serializable {
 	private String datasetName;
 	private int m_numEdges;
 	private int m_numOfNodes = 1;
@@ -46,11 +46,11 @@ public class Graph implements Serializable {
 	private int m_objToEdgeId = 10; // this number helps to identify edge on which obj is located, sync it with same
 									// variable in RandomObjectGenerator class
 
-	public Graph() {
+	public CoreGraph() {
 
 	}
 
-	public Graph(String name) {
+	public CoreGraph(String name) {
 		datasetName = name;
 	}
 

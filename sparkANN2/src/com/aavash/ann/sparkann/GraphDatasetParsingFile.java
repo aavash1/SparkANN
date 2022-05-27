@@ -15,7 +15,7 @@ import org.apache.spark.graphx.PartitionStrategy;
 import org.apache.spark.storage.StorageLevel;
 
 import com.aavash.ann.sparkann.graph.EdgeNetwork;
-import com.aavash.ann.sparkann.graph.Node;
+import com.aavash.ann.sparkann.graph.Vertices;
 
 import scala.Predef.$eq$colon$eq;
 import scala.Tuple2;
@@ -50,12 +50,12 @@ public class GraphDatasetParsingFile {
 		ArrayList<Tuple2<Integer, Integer>> nodes = new ArrayList<>();
 		ArrayList<Edge<Double>> edges = new ArrayList<>();
 
-		JavaRDD<Node> nodesPart = inputNodesTextFile.mapPartitions(p -> {
-			ArrayList<Node> nodeList = new ArrayList<Node>();
+		JavaRDD<Vertices> nodesPart = inputNodesTextFile.mapPartitions(p -> {
+			ArrayList<Vertices> nodeList = new ArrayList<Vertices>();
 			int counter = 0;
 			while (p.hasNext()) {
 				String[] parts = p.next().split(" ");
-				Node node = new Node();
+				Vertices node = new Vertices();
 				node.setNode_Id(Integer.parseInt(parts[0]));
 				node.setLongitude(Double.parseDouble(parts[1]));
 				node.setLatitude(Double.parseDouble(parts[2]));

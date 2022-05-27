@@ -57,7 +57,7 @@ public class PropertyGraphExampleFromEdges {
 		HashMap<Object, ArrayList<Integer>> metisHolder = new HashMap<Object, ArrayList<Integer>>();
 
 		UtilitiesMgmt.readTextEdgeFile(edges, edgesInputFileName);
-		UtilitiesMgmt.readTextNodeFile(nodes, nodesInputFileName);
+		UtilitiesMgmt.readTextNodeFile1(nodes, nodesInputFileName);
 		// metisHolder = Utilsmanagement.readMETISInputGraph(metisInputGraph,
 		// metisHolder);
 
