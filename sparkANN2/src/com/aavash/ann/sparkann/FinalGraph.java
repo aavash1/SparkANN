@@ -1,7 +1,12 @@
 package com.aavash.ann.sparkann;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -15,14 +20,16 @@ import org.apache.spark.storage.StorageLevel;
 import com.aavash.ann.sparkann.graph.Vertices;
 import com.ann.sparkann.framework.CoreGraph;
 import com.ann.sparkann.framework.Node;
+import com.ann.sparkann.framework.UtilitiesMgmt;
 import com.ann.sparkann.framework.UtilsManagement;
+import com.google.common.collect.LinkedHashMultimap;
 
 import scala.Tuple2;
 import scala.reflect.ClassTag;
 
 public class FinalGraph {
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws IOException {
 
 		// Defining tags
 		ClassTag<String> stringTag = scala.reflect.ClassTag$.MODULE$.apply(String.class);
@@ -65,10 +72,10 @@ public class FinalGraph {
 				counter++;
 			}
 
-			List<Edge<Double>> edges = new ArrayList<>();
+			List<Edge<Double>> connectingEdges = new ArrayList<>();
 			for (Integer src : cGraph.getAdjancencyMap().keySet()) {
 				for (Integer dest : cGraph.getAdjancencyMap().get(src).keySet()) {
-					edges.add(new Edge<>(src, dest, cGraph.getEdgeDistance(src, dest)));
+					connectingEdges.add(new Edge<>(src, dest, cGraph.getEdgeDistance(src, dest)));
 
 				}
 
@@ -86,16 +93,46 @@ public class FinalGraph {
 
 			// Create a JavaRDD for nodeList and Edges
 			JavaRDD<Tuple2<Object, Node>> nodesRDD = jscontext.parallelize(nodeList);
-			JavaRDD<Edge<Double>> edgesRDD = jscontext.parallelize(edges);
+			JavaRDD<Edge<Double>> edgesRDD = jscontext.parallelize(connectingEdges);
 
 			System.out.println("Create a graph using the RDDs'");
 			Graph<Node, Double> graph = Graph.apply(nodesRDD.rdd(), edgesRDD.rdd(), new Node(),
 					StorageLevel.MEMORY_ONLY(), StorageLevel.MEMORY_ONLY(), nodeTag, doubleTag);
 
-			graph.vertices().toJavaRDD().collect().forEach(System.out::println);
-			graph.edges().toJavaRDD().collect().forEach(System.out::println);
-			
-			
+			// graph.vertices().toJavaRDD().collect().forEach(System.out::println);
+
+			// graph.edges().toJavaRDD().collect().forEach(System.out::println);
+
+			// Read the output of METIS as partitionFile
+			ArrayList<Integer> partitionIndex = new ArrayList<Integer>();
+			partitionIndex = UtilitiesMgmt.readMETISPartition(metisPartitionOutputFile, partitionIndex);
+
+//			for (int i = 0; i < partitionIndex.size(); i++) {
+//				System.out.println(partitionIndex.get(i));
+//			}
+//			for (int i = 0; i < connectingEdges.size(); i++) {
+//				System.out.println(connectingEdges.get(i));
+//			}
+
+			// Storing the partitionIndex and metisGraphInput in the same
+			// LinkedHashMultiMap.
+
+			// This tuple2 will hold <PartitionIndex, Tuple2<Node,Id, LinkedHashMap<NodeId,
+			// Distance>>>>
+			// LinkedHashMap will be used for linkedList for adjacent nodes
+			Tuple2<Object, Tuple2<Object, LinkedHashMap<Object, Double>>> toPart;
+
+			Map<Object, Map<Object, Map<Object, Double>>> toPartMap = new HashMap<Object, Map<Object, Map<Object, Double>>>();
+
+			for (Integer nodeInEdgeList : cGraph.getAdjancencyMap().keySet()) {
+				System.out.println(
+						"Node: " + nodeInEdgeList + " adjacent nodes:" + cGraph.getAdjancencyMap().get(nodeInEdgeList));
+
+			}
+
+			for (Integer index : partitionIndex) {
+
+			}
 
 			jscontext.close();
 		}

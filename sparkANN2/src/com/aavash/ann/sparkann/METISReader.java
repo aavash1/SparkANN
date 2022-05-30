@@ -130,8 +130,8 @@ public class METISReader implements Serializable {
 			JavaPairRDD<Integer, Map<Integer, List<Integer>>> metisGraphWithPartitionIndexRDD = javaSparkContext
 					.parallelizePairs(mapMetisGraphWithPartitionIndex);
 
-			// metisGraphWithPartitionIndexRDD.foreach(x -> System.out.println(x._1() + " "
-			// + x._2()));
+			 metisGraphWithPartitionIndexRDD.foreach(x -> System.out.println(x._1() + " "
+			 + x._2()));
 
 			JavaPairRDD<Integer, Map<Integer, List<Integer>>> customPartitioned = metisGraphWithPartitionIndexRDD
 					.partitionBy(new CustomPartitioner(2));
@@ -144,9 +144,9 @@ public class METISReader implements Serializable {
 				return partitionCheckList.iterator();
 			}, true);
 
-			// System.out.println(result.collect());
+			 System.out.println(result.collect());
 
-			// System.out.println("Num partitions " + result.getNumPartitions());
+			 System.out.println("Num partitions " + result.getNumPartitions());
 
 			// Create Graph using graphX
 			List<Edge<Double>> edges = new ArrayList<>();
