@@ -113,8 +113,8 @@ public class METISReader implements Serializable {
 				metisGraphWithPartitionIndex.put(partitionIndex.get(i), nodesAndNeighbors);
 			}
 
-			// System.out.println("The size of metisGraphWithPartition is: " +
-			// metisGraphWithPartitionIndex.size());
+			 System.out.println("The size of metisGraphWithPartition is: " +
+			 metisGraphWithPartitionIndex);
 
 			// 4. Creating an RDD of the metisGraphWithPartitionIndex.
 			List<Tuple2<Integer, Map<Integer, List<Integer>>>> mapMetisGraphWithPartitionIndex = new ArrayList<>(

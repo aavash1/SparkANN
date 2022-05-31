@@ -3,14 +3,18 @@ package com.aavash.ann.sparkann;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
+import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.graphx.Edge;
@@ -104,35 +108,103 @@ public class FinalGraph {
 			// graph.edges().toJavaRDD().collect().forEach(System.out::println);
 
 			// Read the output of METIS as partitionFile
-			ArrayList<Integer> partitionIndex = new ArrayList<Integer>();
-			partitionIndex = UtilitiesMgmt.readMETISPartition(metisPartitionOutputFile, partitionIndex);
+			ArrayList<Integer> graphPartitionIndex = new ArrayList<Integer>();
+			graphPartitionIndex = UtilitiesMgmt.readMETISPartition(metisPartitionOutputFile, graphPartitionIndex);
 
-//			for (int i = 0; i < partitionIndex.size(); i++) {
-//				System.out.println(partitionIndex.get(i));
+			LinkedHashMultimap<Integer, Map<Integer, Map<Integer, Double>>> cGraphWithPartitionIndex = LinkedHashMultimap
+					.create();
+
+			// System.out.println("Graph: " + cGraph.getAdjancencyMap());
+			System.out.println();
+//			int count = 0;
+//			Map<Integer, Map<Integer, Double>> srcMap = new HashMap<Integer, Map<Integer, Double>>();
+//
+//			for (Integer in : cGraph.getAdjancencyMap().keySet()) {
+//				// System.out.println("K1: " + in + " V in K1: " +
+//				// cGraph.getAdjancencyMap().get(in).values());
+//				Map<Integer, Double> destMap = new HashMap<Integer, Double>();
+//
+//				for (Integer in2 : cGraph.getAdjancencyMap().get(in).keySet()) {
+//					// System.out.println("K2 in V: " + in2 + " V in K2: " +
+//					// cGraph.getAdjancencyMap().get(in).get(in2));
+//					destMap.put(in2, cGraph.getAdjancencyMap().get(in).get(in2));
+//
+//				}
+//				srcMap.put(in, destMap);
+////					cGraphWithPartitionIndex.put(partitionIndex.get(count), srcMap);
+////					count++;
+//				// System.out.println();
 //			}
-//			for (int i = 0; i < connectingEdges.size(); i++) {
-//				System.out.println(connectingEdges.get(i));
+
+//			for (int i = 0; i < graphPartitionIndex.size(); i++) {
+//				for (Entry<Integer, Map<Integer, Double>> entry : srcMap.entrySet()) {
+//					cGraphWithPartitionIndex.put(graphPartitionIndex.get(0),
+//							(Map<Integer, Map<Integer, Double>>) entry);
+//					i++;
+//					// System.out.print(entry);
+//					// System.out.print(",");
+//
+//				}
+//
 //			}
 
-			// Storing the partitionIndex and metisGraphInput in the same
-			// LinkedHashMultiMap.
+//			for (int i = 0; i < graphPartitionIndex.size(); i++) {
+//				Map<Integer, Map<Integer, Double>> srcMap = new HashMap<Integer, Map<Integer, Double>>();
+//				for (Integer in : cGraph.getAdjancencyMap().keySet()) {
+//					Map<Integer, Double> destMap = new HashMap<Integer, Double>();
+//					for (Integer in2 : cGraph.getAdjancencyMap().get(in).keySet()) {
+//						destMap.put(in2, cGraph.getAdjancencyMap().get(in).get(in2));
+//					}
+//					srcMap.put(in, destMap);
+//					cGraphWithPartitionIndex.put(graphPartitionIndex.get(i), srcMap);
+//					i++;
+//					// System.out.println();
+//				}
+//
+//			}
 
-			// This tuple2 will hold <PartitionIndex, Tuple2<Node,Id, LinkedHashMap<NodeId,
-			// Distance>>>>
-			// LinkedHashMap will be used for linkedList for adjacent nodes
-			Tuple2<Object, Tuple2<Object, LinkedHashMap<Object, Double>>> toPart;
+//			Set<Entry<Integer, Map<Integer, Double>>> set = cGraph.getAdjancencyMap().entrySet();
+//			Map<Integer, Map<Integer, Double>> mapFromSet = new HashMap<Integer, Map<Integer, Double>>();
+//			int count = 0;
+//			for (Entry<Integer, Map<Integer, Double>> entry : set) {
+//
+//				mapFromSet.put(entry.getKey(), entry.getValue());
+//				cGraphWithPartitionIndex.put(graphPartitionIndex.get(count), mapFromSet);
+//
+//			}
+//
+//			System.out.println(cGraphWithPartitionIndex);
 
-			Map<Object, Map<Object, Map<Object, Double>>> toPartMap = new HashMap<Object, Map<Object, Map<Object, Double>>>();
+			// List<Tuple2<PartitionIndex, Map< SourceNode, Map<destinationNode,Distance>>>.
+			List<Tuple2<Object, Map<Object, Map<Object, Double>>>> adjacencyListWithPartitionIndex = new ArrayList<>(
+					graphPartitionIndex.size());
+			Set<Entry<Integer, Map<Integer, Double>>> set = cGraph.getAdjancencyMap().entrySet();
+			Map<Object, Map<Object, Double>> mapFromSet = new HashMap<Object, Map<Object, Double>>();
 
-			for (Integer nodeInEdgeList : cGraph.getAdjancencyMap().keySet()) {
-				System.out.println(
-						"Node: " + nodeInEdgeList + " adjacent nodes:" + cGraph.getAdjancencyMap().get(nodeInEdgeList));
+			int count = 0;
+
+			for (Entry<Integer, Map<Integer, Double>> entry : set) {
+				Set<Entry<Integer, Double>> setWithinSet = entry.getValue().entrySet();
+				Map<Object, Double> mapWithinMapFromSet = new HashMap<Object, Double>();
+				for (Entry<Integer, Double> entryWithinSet : setWithinSet) {
+					mapWithinMapFromSet.put(Long.valueOf(entryWithinSet.getKey()), entryWithinSet.getValue());
+				}
+				mapFromSet.put(entry.getKey(), mapWithinMapFromSet);
 
 			}
 
-			for (Integer index : partitionIndex) {
+			System.out.println("Graph adjacency List: " + mapFromSet);
+			System.out.println("Partition Index: " + graphPartitionIndex);
 
+			for (int i = 0; i < adjacencyListWithPartitionIndex.size(); i++) {
+				adjacencyListWithPartitionIndex.add(new Tuple2<Object, Map<Object, Map<Object, Double>>>(
+						Long.valueOf(graphPartitionIndex.get(i)), mapFromSet));
 			}
+
+			JavaPairRDD<Object, Map<Object, Map<Object, Double>>> adjacencyListWithPartitionIndexRDD = jscontext
+					.parallelizePairs(adjacencyListWithPartitionIndex);
+
+			adjacencyListWithPartitionIndexRDD.foreach(x -> System.out.println(x._1() + " " + x._2()));
 
 			jscontext.close();
 		}
