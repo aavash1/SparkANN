@@ -136,17 +136,7 @@ public class METISReader implements Serializable {
 			JavaPairRDD<Integer, Map<Integer, List<Integer>>> customPartitioned = metisGraphWithPartitionIndexRDD
 					.partitionBy(new CustomPartitioner(2));
 
-			JavaRDD<Integer> result = customPartitioned.mapPartitionsWithIndex((idx, i) -> {
-				List<Integer> partitionCheckList = new ArrayList<>();
-				while (i.hasNext()) {
-					partitionCheckList.add(i.next()._1);
-				}
-				return partitionCheckList.iterator();
-			}, true);
-
-			 System.out.println(result.collect());
-
-			 System.out.println("Num partitions " + result.getNumPartitions());
+	
 
 			// Create Graph using graphX
 			List<Edge<Double>> edges = new ArrayList<>();

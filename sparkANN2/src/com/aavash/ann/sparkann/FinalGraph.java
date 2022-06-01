@@ -13,6 +13,7 @@ import java.util.Set;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.apache.spark.Partitioner;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -21,6 +22,7 @@ import org.apache.spark.graphx.Edge;
 import org.apache.spark.graphx.Graph;
 import org.apache.spark.storage.StorageLevel;
 
+import com.aavash.ann.sparkann.graph.CustomPartitioner;
 import com.aavash.ann.sparkann.graph.Vertices;
 import com.ann.sparkann.framework.CoreGraph;
 import com.ann.sparkann.framework.Node;
@@ -111,100 +113,58 @@ public class FinalGraph {
 			ArrayList<Integer> graphPartitionIndex = new ArrayList<Integer>();
 			graphPartitionIndex = UtilitiesMgmt.readMETISPartition(metisPartitionOutputFile, graphPartitionIndex);
 
-			LinkedHashMultimap<Integer, Map<Integer, Map<Integer, Double>>> cGraphWithPartitionIndex = LinkedHashMultimap
-					.create();
+			// System.out.println("adj Map size: " + cGraph.getAdjancencyMap().size());
+			int[] keys = new int[graphPartitionIndex.size()];
+			for (int i = 0; i < cGraph.getAdjancencyMap().size(); i++) {
 
-			// System.out.println("Graph: " + cGraph.getAdjancencyMap());
-			System.out.println();
-//			int count = 0;
-//			Map<Integer, Map<Integer, Double>> srcMap = new HashMap<Integer, Map<Integer, Double>>();
-//
-//			for (Integer in : cGraph.getAdjancencyMap().keySet()) {
-//				// System.out.println("K1: " + in + " V in K1: " +
-//				// cGraph.getAdjancencyMap().get(in).values());
-//				Map<Integer, Double> destMap = new HashMap<Integer, Double>();
-//
-//				for (Integer in2 : cGraph.getAdjancencyMap().get(in).keySet()) {
-//					// System.out.println("K2 in V: " + in2 + " V in K2: " +
-//					// cGraph.getAdjancencyMap().get(in).get(in2));
-//					destMap.put(in2, cGraph.getAdjancencyMap().get(in).get(in2));
-//
-//				}
-//				srcMap.put(in, destMap);
-////					cGraphWithPartitionIndex.put(partitionIndex.get(count), srcMap);
-////					count++;
-//				// System.out.println();
+				keys[i] = (int) cGraph.getAdjancencyMap().keySet().toArray()[i];
+				// System.out.println(keys[i]);
+			}
+//			for (Integer kInt : keys) {
+//				System.out.println("Key: " + kInt + " Value: " + cGraph.getAdjancencyMap().get(kInt));
 //			}
 
-//			for (int i = 0; i < graphPartitionIndex.size(); i++) {
-//				for (Entry<Integer, Map<Integer, Double>> entry : srcMap.entrySet()) {
-//					cGraphWithPartitionIndex.put(graphPartitionIndex.get(0),
-//							(Map<Integer, Map<Integer, Double>>) entry);
-//					i++;
-//					// System.out.print(entry);
-//					// System.out.print(",");
-//
-//				}
-//
-//			}
-
-//			for (int i = 0; i < graphPartitionIndex.size(); i++) {
-//				Map<Integer, Map<Integer, Double>> srcMap = new HashMap<Integer, Map<Integer, Double>>();
-//				for (Integer in : cGraph.getAdjancencyMap().keySet()) {
-//					Map<Integer, Double> destMap = new HashMap<Integer, Double>();
-//					for (Integer in2 : cGraph.getAdjancencyMap().get(in).keySet()) {
-//						destMap.put(in2, cGraph.getAdjancencyMap().get(in).get(in2));
-//					}
-//					srcMap.put(in, destMap);
-//					cGraphWithPartitionIndex.put(graphPartitionIndex.get(i), srcMap);
-//					i++;
-//					// System.out.println();
-//				}
-//
-//			}
-
-//			Set<Entry<Integer, Map<Integer, Double>>> set = cGraph.getAdjancencyMap().entrySet();
-//			Map<Integer, Map<Integer, Double>> mapFromSet = new HashMap<Integer, Map<Integer, Double>>();
-//			int count = 0;
-//			for (Entry<Integer, Map<Integer, Double>> entry : set) {
-//
-//				mapFromSet.put(entry.getKey(), entry.getValue());
-//				cGraphWithPartitionIndex.put(graphPartitionIndex.get(count), mapFromSet);
-//
-//			}
-//
-//			System.out.println(cGraphWithPartitionIndex);
-
-			// List<Tuple2<PartitionIndex, Map< SourceNode, Map<destinationNode,Distance>>>.
 			List<Tuple2<Object, Map<Object, Map<Object, Double>>>> adjacencyListWithPartitionIndex = new ArrayList<>(
 					graphPartitionIndex.size());
-			Set<Entry<Integer, Map<Integer, Double>>> set = cGraph.getAdjancencyMap().entrySet();
-			Map<Object, Map<Object, Double>> mapFromSet = new HashMap<Object, Map<Object, Double>>();
 
-			int count = 0;
+			for (int i = 0; i < graphPartitionIndex.size(); i++) {
+				Map<Object, Map<Object, Double>> mapForAdjacentEdges = new HashMap<Object, Map<Object, Double>>();
+				Map<Object, Double> destinationEdges = new HashMap<Object, Double>();
 
-			for (Entry<Integer, Map<Integer, Double>> entry : set) {
-				Set<Entry<Integer, Double>> setWithinSet = entry.getValue().entrySet();
-				Map<Object, Double> mapWithinMapFromSet = new HashMap<Object, Double>();
-				for (Entry<Integer, Double> entryWithinSet : setWithinSet) {
-					mapWithinMapFromSet.put(Long.valueOf(entryWithinSet.getKey()), entryWithinSet.getValue());
+				for (Integer dstIndex : cGraph.getAdjancencyMap().get(keys[i]).keySet()) {
+					destinationEdges.put(Long.valueOf(dstIndex), cGraph.getAdjancencyMap().get(keys[i]).get(dstIndex));
 				}
-				mapFromSet.put(entry.getKey(), mapWithinMapFromSet);
-
-			}
-
-			System.out.println("Graph adjacency List: " + mapFromSet);
-			System.out.println("Partition Index: " + graphPartitionIndex);
-
-			for (int i = 0; i < adjacencyListWithPartitionIndex.size(); i++) {
+				mapForAdjacentEdges.put(keys[i], destinationEdges);
 				adjacencyListWithPartitionIndex.add(new Tuple2<Object, Map<Object, Map<Object, Double>>>(
-						Long.valueOf(graphPartitionIndex.get(i)), mapFromSet));
+						Long.valueOf(graphPartitionIndex.get(i)), mapForAdjacentEdges));
+
 			}
 
+			// System.out.println();
+			// System.out.println(adjacencyListWithPartitionIndex);
+
+			// Create a JavaPair Rdd of the adjacencyList
 			JavaPairRDD<Object, Map<Object, Map<Object, Double>>> adjacencyListWithPartitionIndexRDD = jscontext
 					.parallelizePairs(adjacencyListWithPartitionIndex);
 
-			adjacencyListWithPartitionIndexRDD.foreach(x -> System.out.println(x._1() + " " + x._2()));
+	//		adjacencyListWithPartitionIndexRDD.foreach(x -> System.out.println(x._1() + " " + x._2()));
+
+			// Partition the RDD using the key of the JavaPairRDD
+			JavaPairRDD<Object, Map<Object, Map<Object, Double>>> customPartitionedadjacencyListWithPartitionIndexRDD = adjacencyListWithPartitionIndexRDD
+					.partitionBy(new CustomPartitioner(2));
+
+			JavaRDD<Integer> result = customPartitionedadjacencyListWithPartitionIndexRDD
+					.mapPartitionsWithIndex((idx, i) -> {
+						List<Integer> partitionCheckList = new ArrayList<>();
+						while (i.hasNext()) {
+							partitionCheckList.add((Integer) i.next()._1);
+						}
+						return partitionCheckList.iterator();
+					}, true);
+
+			System.out.println(result.collect());
+
+			System.out.println("Num partitions " + result.getNumPartitions());
 
 			jscontext.close();
 		}

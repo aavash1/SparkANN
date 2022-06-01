@@ -5,13 +5,13 @@ import org.apache.spark.Partitioner;
 public class CustomPartitioner extends Partitioner {
 	private final int numParts;
 
-	public CustomPartitioner(int i) {
-		numParts = i;
+	public CustomPartitioner(Object i) {
+		numParts = (int) i;
 	}
 
 	@Override
 	public int getPartition(Object key) {
-		int partIndex = (Integer) key;
+		int partIndex = (int) key;
 		return partIndex;
 	}
 
