@@ -147,7 +147,7 @@ public class FinalGraph {
 			JavaPairRDD<Object, Map<Object, Map<Object, Double>>> adjacencyListWithPartitionIndexRDD = jscontext
 					.parallelizePairs(adjacencyListWithPartitionIndex);
 
-	//		adjacencyListWithPartitionIndexRDD.foreach(x -> System.out.println(x._1() + " " + x._2()));
+			adjacencyListWithPartitionIndexRDD.foreach(x -> System.out.println(x._1() + " " + x._2()));
 
 			// Partition the RDD using the key of the JavaPairRDD
 			JavaPairRDD<Object, Map<Object, Map<Object, Double>>> customPartitionedadjacencyListWithPartitionIndexRDD = adjacencyListWithPartitionIndexRDD
@@ -157,7 +157,7 @@ public class FinalGraph {
 					.mapPartitionsWithIndex((idx, i) -> {
 						List<Integer> partitionCheckList = new ArrayList<>();
 						while (i.hasNext()) {
-							partitionCheckList.add((Integer) i.next()._1);
+							partitionCheckList.add(Integer.parseInt(String.valueOf(i.next()._1)));
 						}
 						return partitionCheckList.iterator();
 					}, true);

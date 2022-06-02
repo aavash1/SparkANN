@@ -11,7 +11,7 @@ public class CustomPartitioner extends Partitioner {
 
 	@Override
 	public int getPartition(Object key) {
-		int partIndex = (int) key;
+		int partIndex = Integer.parseInt(String.valueOf(key));
 		return partIndex;
 	}
 
