@@ -26,7 +26,7 @@ public class CoreGraph implements Serializable {
 	// list of Nodes with full encapsulated properties:
 	// (nodeId, longitude, latitude)
 	private ArrayList<Node> m_nodesWithInfo = new ArrayList<Node>();
-	private ArrayList<Edge> m_edgesWithInfo = new ArrayList<Edge>();
+	private ArrayList<cEdge> m_edgesWithInfo = new ArrayList<cEdge>();
 	private ArrayList<RoadObject> m_objectsWithInfo = new ArrayList<RoadObject>();
 	// Use this to create a object as it stores.
 	// m_objectsOnEdges: Map<Edge Id, ArrayList<RoadObjects>>
@@ -232,7 +232,7 @@ public class CoreGraph implements Serializable {
 		addNode(startNode);
 		addNode(endNode);
 
-		Edge newEdge = new Edge();
+		cEdge newEdge = new cEdge();
 		m_edgeId++;
 		newEdge.setEdgeId(m_edgeId);
 		newEdge.setStartNodeId(startNode);
@@ -264,7 +264,7 @@ public class CoreGraph implements Serializable {
 		addNode(startNode);
 		addNode(endNode);
 
-		Edge newEdge = new Edge();
+		cEdge newEdge = new cEdge();
 		newEdge.setEdgeId(edgeId);
 		newEdge.setStartNodeId(startNode);
 		newEdge.setEndNodeId(endNode);
@@ -298,11 +298,11 @@ public class CoreGraph implements Serializable {
 		return true;
 	}
 
-	public ArrayList<Edge> getEdgesWithInfo() {
+	public ArrayList<cEdge> getEdgesWithInfo() {
 		return m_edgesWithInfo;
 	}
 
-	public void setEdgeWithInfo(ArrayList<Edge> edgeWithInfo) {
+	public void setEdgeWithInfo(ArrayList<cEdge> edgeWithInfo) {
 		if (edgeWithInfo != null) {
 			// Collections.sort(edgeWithInfo, Edge.DistanceComparator);
 		}
@@ -311,9 +311,9 @@ public class CoreGraph implements Serializable {
 		syncAdjMap(edgeWithInfo);
 	}
 
-	private void syncAdjMap(ArrayList<Edge> edgeWithInfo) {
+	private void syncAdjMap(ArrayList<cEdge> edgeWithInfo) {
 
-		for (Edge edge : edgeWithInfo) {
+		for (cEdge edge : edgeWithInfo) {
 			addNode(edge.getStartNodeId());
 			addNode(edge.getEndNodeId());
 			m_adjancencyMap.get(edge.getStartNodeId()).put(edge.getEndNodeId(), edge.getLength());
@@ -343,7 +343,7 @@ public class CoreGraph implements Serializable {
 	}
 
 	public double getEdgeDistance(int edgeId) {
-		for (Edge edge : m_edgesWithInfo) {
+		for (cEdge edge : m_edgesWithInfo) {
 			if (edge.getEdgeId() == edgeId) {
 				return edge.getLength();
 			}
@@ -352,7 +352,7 @@ public class CoreGraph implements Serializable {
 	}
 
 	public int getStartNodeIdOfEdge(int edgeId) {
-		for (Edge edge : m_edgesWithInfo) {
+		for (cEdge edge : m_edgesWithInfo) {
 			if (edge.getEdgeId() == edgeId) {
 				return edge.getStartNodeId();
 			}
@@ -361,7 +361,7 @@ public class CoreGraph implements Serializable {
 	}
 
 	public int getEndNodeIdOfEdge(int edgeId) {
-		for (Edge edge : m_edgesWithInfo) {
+		for (cEdge edge : m_edgesWithInfo) {
 			if (edge.getEdgeId() == edgeId) {
 				return edge.getEndNodeId();
 			}
@@ -373,7 +373,7 @@ public class CoreGraph implements Serializable {
 		if (!hasEdge(startNodeId, endNodeId)) {
 			return -1;
 		}
-		for (Edge edge : m_edgesWithInfo) {
+		for (cEdge edge : m_edgesWithInfo) {
 			if ((edge.getStartNodeId() == startNodeId) && (edge.getEndNodeId() == endNodeId)) {
 				return edge.getEdgeId();
 			}
@@ -382,7 +382,7 @@ public class CoreGraph implements Serializable {
 	}
 
 	public int getEdgeId(int nodeId1, int nodeId2) {
-		for (Edge edge : m_edgesWithInfo) {
+		for (cEdge edge : m_edgesWithInfo) {
 			if ((edge.getStartNodeId() == nodeId1) && (edge.getEndNodeId() == nodeId2)) {
 				return edge.getEdgeId();
 			}
@@ -430,7 +430,7 @@ public class CoreGraph implements Serializable {
 
 	public double getTotalLengthOfAllEdges() {
 		double total = 0.0;
-		for (Edge edge : m_edgesWithInfo) {
+		for (cEdge edge : m_edgesWithInfo) {
 			total += edge.getLength();
 			// System.out.println("EdgeID: " + edge.getEdgeId() + ", length: " + total);
 		}
@@ -441,7 +441,7 @@ public class CoreGraph implements Serializable {
 	public void printEdgesInfo() {
 		System.out.println("Edge's Information: ");
 
-		for (Edge e : m_edgesWithInfo) {
+		for (cEdge e : m_edgesWithInfo) {
 			System.out.println(e.toString());
 		}
 	}
@@ -535,7 +535,7 @@ public class CoreGraph implements Serializable {
 			System.out.println("m_edgeWithInfo is empty" + ", for obj: " + newObj);
 			return false;
 		}
-		for (Edge e : m_edgesWithInfo) {
+		for (cEdge e : m_edgesWithInfo) {
 
 			if (e.getEdgeId() == edgeId) {
 				isEdgeExists = true;

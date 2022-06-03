@@ -2,7 +2,7 @@ package com.ann.sparkann.framework;
 
 import java.util.Comparator;
 
-public class Edge {
+public class cEdge {
 	private int m_intEdgeId;
 	private int m_intStartNodeId;
 	private int m_intEndNodeId;
@@ -53,9 +53,9 @@ public class Edge {
 				+ ", Length=" + m_doubLength + "]";
 	}
 
-	public static Comparator<Edge> DistanceComparator = new Comparator<Edge>() {
+	public static Comparator<cEdge> DistanceComparator = new Comparator<cEdge>() {
 //This is descending order.
-		public int compare(Edge edge1, Edge edge2) {
+		public int compare(cEdge edge1, cEdge edge2) {
 			double distanceDiff = edge1.getLength() - edge2.getLength();
 
 			if (distanceDiff > 0)

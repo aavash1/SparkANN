@@ -259,9 +259,9 @@ public class UtilsManagement {
 	}
 
 	// Method to read the Edge files from the datasets
-	public static ArrayList<Edge> readEdgeFile(String csvFilename) {
+	public static ArrayList<cEdge> readEdgeFile(String csvFilename) {
 		String line = "";
-		ArrayList<Edge> listEd = new ArrayList<Edge>();
+		ArrayList<cEdge> listEd = new ArrayList<cEdge>();
 		boolean removedBOM = false;
 		try (BufferedReader br = new BufferedReader(new FileReader(csvFilename))) {
 			while ((line = br.readLine()) != null) {
@@ -274,7 +274,7 @@ public class UtilsManagement {
 						removedBOM = true;
 
 					}
-					Edge ed = new Edge();
+					cEdge ed = new cEdge();
 					ed.setEdgeId(Integer.parseInt(record[0]));
 					ed.setStartNodeId(Integer.parseInt(record[1]));
 
@@ -383,7 +383,7 @@ public class UtilsManagement {
 
 	public static boolean readEdgeFile(CoreGraph graph, String csvFilename) {
 		String line = "";
-		ArrayList<Edge> listEd = new ArrayList<Edge>();
+		ArrayList<cEdge> listEd = new ArrayList<cEdge>();
 		boolean removedBOM = false;
 		try (BufferedReader br = new BufferedReader(new FileReader(csvFilename))) {
 			while ((line = br.readLine()) != null) {
@@ -395,7 +395,7 @@ public class UtilsManagement {
 						removedBOM = true;
 
 					}
-					Edge ed = new Edge();
+					cEdge ed = new cEdge();
 					ed.setEdgeId(Integer.parseInt(record[0]));
 					ed.setStartNodeId(Integer.parseInt(record[1]));
 					ed.setEndNodeId(Integer.parseInt(record[2]));
@@ -418,7 +418,7 @@ public class UtilsManagement {
 	public static boolean readTxtEdgeFile(CoreGraph graph, String txtFilename) {
 		String line = "";
 		int counter = 0;
-		ArrayList<Edge> listEd = new ArrayList<Edge>();
+		ArrayList<cEdge> listEd = new ArrayList<cEdge>();
 		boolean removedBOM = false;
 		try (BufferedReader br = new BufferedReader(new FileReader(txtFilename))) {
 			while ((line = br.readLine()) != null) {
@@ -430,7 +430,7 @@ public class UtilsManagement {
 						removedBOM = true;
 
 					}
-					Edge ed = new Edge();
+					cEdge ed = new cEdge();
 					counter += 1;
 					ed.setEdgeId(counter);
 					ed.setStartNodeId(Integer.parseInt(record[1]));
@@ -903,14 +903,14 @@ public class UtilsManagement {
 
 	// Convert Edge dataset with edgeId starting from 1.
 	// TxtFile
-	public static void convertEdgeToTXTFile(CoreGraph graph, ArrayList<Edge> edgeList, String graphFileName) {
+	public static void convertEdgeToTXTFile(CoreGraph graph, ArrayList<cEdge> edgeList, String graphFileName) {
 		System.err.println("Edge Id Conversion started...");
 
 		try {
 			FileWriter outputFile = new FileWriter(graphFileName, true);
 
 			// Remove the 1st Integer
-			for (Edge EdgeId : edgeList) {
+			for (cEdge EdgeId : edgeList) {
 				System.out.println("Initial NodeId: " + EdgeId.getEdgeId());
 				int increaseEdgeId = EdgeId.getEdgeId() + 1;
 				System.out.println("After Increment: " + increaseEdgeId);
@@ -933,14 +933,14 @@ public class UtilsManagement {
 	}
 
 	// CSV file
-	public static void convertEdgeToCSVFile(CoreGraph graph, ArrayList<Edge> edgeList, String graphFileName) {
+	public static void convertEdgeToCSVFile(CoreGraph graph, ArrayList<cEdge> edgeList, String graphFileName) {
 		System.err.println("Edge Id Conversion started...");
 
 		try {
 			FileWriter outputFile = new FileWriter(graphFileName, true);
 
 			// Remove the 1st Integer
-			for (Edge EdgeId : edgeList) {
+			for (cEdge EdgeId : edgeList) {
 				System.out.println("Initial NodeId: " + EdgeId.getEdgeId());
 				int increaseEdgeId = EdgeId.getEdgeId() + 1;
 				System.out.println("After Increment: " + increaseEdgeId);
