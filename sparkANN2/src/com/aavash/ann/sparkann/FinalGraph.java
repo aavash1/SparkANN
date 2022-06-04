@@ -22,6 +22,7 @@ import org.apache.spark.graphx.Edge;
 import org.apache.spark.graphx.Graph;
 import org.apache.spark.graphx.PartitionStrategy;
 import org.apache.spark.storage.StorageLevel;
+import org.apache.zookeeper.Op.Create;
 
 import com.aavash.ann.sparkann.graph.CustomPartitioner;
 import com.aavash.ann.sparkann.graph.Vertices;
@@ -104,15 +105,15 @@ public class FinalGraph {
 			JavaRDD<Tuple2<Object, Node>> nodesRDD = jscontext.parallelize(nodeList);
 			JavaRDD<Edge<Double>> edgesRDD = jscontext.parallelize(connectingEdges);
 
-			System.out.println("Create a graph using the RDDs'");
+			// System.out.println("Create a graph using the RDDs'");
 			Graph<Node, Double> graph = Graph
 					.apply(nodesRDD.rdd(), edgesRDD.rdd(), new Node(), StorageLevel.MEMORY_ONLY(),
 							StorageLevel.MEMORY_ONLY(), nodeTag, doubleTag)
 					.partitionBy(PartitionStrategy.EdgePartition1D$.MODULE$, 3);
 
-			graph.vertices().toJavaRDD().collect().forEach(System.out::println);
+			// graph.vertices().toJavaRDD().collect().forEach(System.out::println);
 
-			graph.edges().toJavaRDD().collect().forEach(System.out::println);
+			// graph.edges().toJavaRDD().collect().forEach(System.out::println);
 
 			// Read the output of METIS as partitionFile
 			ArrayList<Integer> graphPartitionIndex = new ArrayList<Integer>();
@@ -131,22 +132,36 @@ public class FinalGraph {
 
 			List<Tuple2<Object, Map<Object, Map<Object, Double>>>> adjacencyListWithPartitionIndex = new ArrayList<>(
 					graphPartitionIndex.size());
+//			LinkedHashMultimap<Object, Map<Object, List<Object>>> adjacencyListWithPartIndex = LinkedHashMultimap
+//					.create();
+			LinkedHashMultimap<Object, Object> partitionIndexWithVertexId = LinkedHashMultimap.create();
+			Map<Object, Object> vertexIdPartitionIndex = new HashMap<Object, Object>();
 
 			for (int i = 0; i < graphPartitionIndex.size(); i++) {
+//				Map<Object, List<Object>> adjacentVertexMap = new HashMap<Object, List<Object>>();
+//				List<Object> destinationVertexList = new ArrayList<Object>();
+
 				Map<Object, Map<Object, Double>> mapForAdjacentEdges = new HashMap<Object, Map<Object, Double>>();
 				Map<Object, Double> destinationEdges = new HashMap<Object, Double>();
 
 				for (Integer dstIndex : cGraph.getAdjancencyMap().get(keys[i]).keySet()) {
 					destinationEdges.put(Long.valueOf(dstIndex), cGraph.getAdjancencyMap().get(keys[i]).get(dstIndex));
+
+					// destinationVertexList.add(Long.valueOf(dstIndex));
 				}
+				// adjacentVertexMap.put(keys[i], destinationVertexList);
+				// adjacencyListWithPartIndex.put(Long.valueOf(graphPartitionIndex.get(i)),
+				// adjacentVertexMap);
+
+				partitionIndexWithVertexId.put(Long.valueOf(graphPartitionIndex.get(i)), keys[i]);
+
+				vertexIdPartitionIndex.put(keys[i], Long.valueOf(graphPartitionIndex.get(i)));
+
 				mapForAdjacentEdges.put(keys[i], destinationEdges);
 				adjacencyListWithPartitionIndex.add(new Tuple2<Object, Map<Object, Map<Object, Double>>>(
 						Long.valueOf(graphPartitionIndex.get(i)), mapForAdjacentEdges));
 
 			}
-
-			System.out.println();
-			System.out.println(adjacencyListWithPartitionIndex);
 
 			// Create a JavaPair Rdd of the adjacencyList
 			JavaPairRDD<Object, Map<Object, Map<Object, Double>>> adjacencyListWithPartitionIndexRDD = jscontext
@@ -170,51 +185,30 @@ public class FinalGraph {
 			System.out.println();
 			System.out.println(result.collect());
 
-			System.out.println("Num partitions " + result.getNumPartitions());
+			// System.out.println("Num partitions " + result.getNumPartitions());
 
-			Map<Object, List<Object>> KeyChecker = new HashMap<Object, List<Object>>();
-			for (Tuple2 tupleFromAdjacecny : adjacencyListWithPartitionIndex) {
-				Map<Object, Map<Object, Double>> t2Map = (Map<Object, Map<Object, Double>>) tupleFromAdjacecny._2;
-				List<Object> srcList = new ArrayList<Object>();
-				for (Object srcVertex : t2Map.keySet()) {
-					srcList.add(srcVertex);
-					KeyChecker.put(tupleFromAdjacecny._1, srcList);
+			Map<Object, Object> BoundaryNodes = new HashMap<>();
+			ArrayList<cEdge> BoundaryEdge = new ArrayList<>();
+
+			for (cEdge selectedEdge : cGraph.getEdgesWithInfo()) {
+				int SrcId = selectedEdge.getStartNodeId();
+				int DestId = selectedEdge.getEndNodeId();
+
+				if (vertexIdPartitionIndex.get(SrcId) == vertexIdPartitionIndex.get(DestId)) {
+					// System.out.println(SrcId + " and " + DestId + " Lies in same Partition");
+				} else {
+					// System.out.println(SrcId + " and " + DestId + " Lies in different
+					// partitions");
+					BoundaryNodes.put(SrcId, vertexIdPartitionIndex.get(SrcId));
+					BoundaryNodes.put(DestId, vertexIdPartitionIndex.get(DestId));
+					BoundaryEdge.add(selectedEdge);
+
 				}
+
 			}
 
-			System.out.println(KeyChecker);
-
-//			Map<Object, Object> BoundaryNodes = new HashMap<Object, Object>();
-//			Map<Object, cEdge> BoundaryEdge = new HashMap<Object, cEdge>();
-//
-//			for (Tuple2 t1 : adjacencyListWithPartitionIndex) {
-//				Map<Object, Map<Object, Double>> t2Map = (Map<Object, Map<Object, Double>>) t1._2;
-//				System.out.println("T2: " + t1._1);
-//				for (Object srcVertex : t2Map.keySet()) {
-//
-//					t2Map.get(srcVertex).keySet();
-//					System.out.println("Source: " + srcVertex);
-//					for (Object destVertex : t2Map.get(srcVertex).keySet()) {
-//						System.out.println("Destinations: " + t2Map.get(srcVertex).keySet().iterator().hasNext());
-//
-//					}
-//
-//				}
-//
-//			}
-
-//			for (com.ann.sparkann.framework.Edge connectingEdge : cGraph.getEdgesWithInfo()) {
-//				int SrcId = connectingEdge.getStartNodeId();
-//				int DestId = connectingEdge.getEndNodeId();
-//
-//				for (Tuple2 t1 : adjacencyListWithPartitionIndex) {
-//					Map<Object, Map<Object, Double>> t2Map = (Map<Object, Map<Object, Double>>) t1._2;
-//					System.out.println("T2: " + t1._2);
-//					
-//				}
-//				System.out.println();
-//
-//			}
+			System.out.println(BoundaryNodes);
+			System.out.println(BoundaryEdge);
 
 			jscontext.close();
 		}
