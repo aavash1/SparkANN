@@ -50,12 +50,12 @@ public class FinalGraph {
 
 		// Pass the path for loading the datasets
 		// 1.1 Dataset for graph containing nodes and edges
-		String nodeDatasetFile = "Dataset/TinygraphNodes.txt";
-		String edgeDataSetFile = "Dataset/TinygraphEdges.txt";
+		String nodeDatasetFile = "Dataset/ManualGraphNodes.txt";
+		String edgeDataSetFile = "Dataset/ManualGraphEdges.txt";
 
 		// 1.2 Dataset for METIS graph and Partition Output
-		String metisInputGraph = "Metisgraph/Tinygraph.txt";
-		String metisPartitionOutputFile = "PartitionDataset/tg_part.txt";
+		String metisInputGraph = "Metisgraph/ManualGraph.txt";
+		String metisPartitionOutputFile = "PartitionDataset/manualGr_part.txt";
 
 		// Load Graph using CoreGraph Framework
 		CoreGraph cGraph = UtilsManagement.readEdgeTxtFileReturnGraph(edgeDataSetFile);
