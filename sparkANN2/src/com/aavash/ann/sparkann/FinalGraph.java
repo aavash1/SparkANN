@@ -24,6 +24,8 @@ import org.apache.spark.graphx.PartitionStrategy;
 import org.apache.spark.storage.StorageLevel;
 import org.apache.zookeeper.Op.Create;
 
+import com.aavash.ann.sparkann.algorithm.ANNNaive;
+import com.aavash.ann.sparkann.algorithm.RandomObjectGenerator;
 import com.aavash.ann.sparkann.graph.CustomPartitioner;
 import com.aavash.ann.sparkann.graph.Vertices;
 import com.ann.sparkann.framework.CoreGraph;
@@ -209,6 +211,14 @@ public class FinalGraph {
 
 			System.out.println(BoundaryNodes);
 			System.out.println(BoundaryEdge);
+
+			RandomObjectGenerator.zgenerateCCDistribution(cGraph, 2, 100, 100, 200);
+			ANNNaive annNaive = new ANNNaive();
+			long startTimeNaive = System.nanoTime();
+			annNaive.compute(cGraph, true);
+			long computationTime = System.nanoTime() - startTimeNaive;
+
+			System.out.print("The time to compute ANN: " + computationTime);
 
 			jscontext.close();
 		}
