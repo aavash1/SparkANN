@@ -2,7 +2,9 @@ package com.ann.sparkann.framework;
 
 import java.util.Comparator;
 
-public class RoadObject {
+import scala.Serializable;
+
+public class RoadObject implements Serializable {
 	private int m_intObjId;
 	private double m_doubLongitude;
 	private double m_doubLatitude;

@@ -559,7 +559,7 @@ public class RandomObjectGenerator {
 		boolean testVar;
 		int randomEdgeId;
 		while (objCounter <= totalNumOfObjects) {
-			randomEdgeId = getRandIntBetRange(0, totalNumberOfEdges - 1);
+			randomEdgeId = getRandIntBetRange(1, totalNumberOfEdges - 1);
 			RoadObject object = new RoadObject();
 			object.setObjId(objCounter);
 

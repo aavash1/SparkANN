@@ -1,8 +1,9 @@
 package com.ann.sparkann.framework;
 
 import java.util.Comparator;
+import scala.Serializable;
 
-public class cEdge {
+public class cEdge implements Serializable {
 	private int m_intEdgeId;
 	private int m_intStartNodeId;
 	private int m_intEndNodeId;
