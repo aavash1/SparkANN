@@ -14,6 +14,8 @@ import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.function.Function;
+import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.graphx.Edge;
 import org.apache.spark.graphx.Graph;
 import org.apache.spark.graphx.PartitionStrategy;
@@ -40,34 +42,46 @@ public class GraphNetwork {
 		ClassTag<Double> doubleTag = scala.reflect.ClassTag$.MODULE$.apply(Double.class);
 		ClassTag<Node> nodeTag = scala.reflect.ClassTag$.MODULE$.apply(Node.class);
 
-		// Pass the path for loading the datasets
-		// 1.1 Dataset for graph containing nodes and edges
+		/**
+		 * 1 Pass the path for loading the datasets 1.1 Dataset for graph containing
+		 * nodes and edges
+		 */
 		String nodeDatasetFile = "Dataset/ManualGraphNodes.txt";
 		String edgeDataSetFile = "Dataset/ManualGraphEdges.txt";
 
-		// 1.2 Dataset for METIS graph and Partition Output
+		/**
+		 * 1.2 Dataset for METIS graph and Partition Output
+		 */
 		String metisInputGraph = "Metisgraph/ManualGraph.txt";
 		String metisPartitionOutputFile = "PartitionDataset/manualGr_part.txt";
 
-		// Load Graph using CoreGraph Framework
+		/**
+		 * Load Graph using CoreGraph Framework
+		 */
 		CoreGraph cGraph = UtilsManagement.readEdgeTxtFileReturnGraph(edgeDataSetFile);
 
-		// Create Vertices List from the nodeDataset
+		/**
+		 * Create Vertices List from the nodeDataset
+		 */
 		ArrayList<Node> nodesList = UtilsManagement.readTxtNodeFile(nodeDatasetFile);
 		cGraph.setNodesWithInfo(nodesList);
 
-		// Generate Random Objects on Edge
-		// Data Object=100
-		// Query Object=500
+		/**
+		 * Generate Random Objects on Edge Data Object=100 Query Object=500
+		 */
 		RandomObjectGenerator.generateUniformRandomObjectsOnMap(cGraph, 100, 500);
 
-		// Load Spark Necessary Items
+		/**
+		 * Load Spark Necessary Items
+		 */
 		Logger.getLogger("org.apache").setLevel(Level.WARN);
 
 		SparkConf config = new SparkConf().setMaster("local[*]").setAppName("Final Graph");
 		try (JavaSparkContext jscontext = new JavaSparkContext(config)) {
 			Long counter = 1L;
+			int nodecounter = 1;
 			List<Tuple2<Object, Node>> nodeList = new ArrayList<>();
+
 			for (Node n : cGraph.getNodesWithInfo()) {
 				nodeList.add(new Tuple2<>(counter, new Node(n.getNodeId(), n.getLongitude(), n.getLatitude())));
 				counter++;
@@ -82,19 +96,25 @@ public class GraphNetwork {
 
 			}
 
-			// Create a JavaRDD for nodeList and Edges
+			/**
+			 * Create a JavaRDD for nodeList and Edges
+			 */
 			JavaRDD<Tuple2<Object, Node>> nodesRDD = jscontext.parallelize(nodeList);
 			JavaRDD<Edge<Double>> edgesRDD = jscontext.parallelize(connectingEdges);
 
-			// System.out.println("Create a graph using the RDDs'");
+			/**
+			 * System.out.println("Create a graph using the RDDs'");
+			 */
 			Graph<Node, Double> graph = Graph
 					.apply(nodesRDD.rdd(), edgesRDD.rdd(), new Node(), StorageLevel.MEMORY_ONLY(),
 							StorageLevel.MEMORY_ONLY(), nodeTag, doubleTag)
 					.partitionBy(PartitionStrategy.EdgePartition1D$.MODULE$, 3);
 
-			graph.vertices().toJavaRDD().collect().forEach(System.out::println);
+			// graph.vertices().toJavaRDD().collect().forEach(System.out::println);
 
-			// Read the output of METIS as partitionFile
+			/**
+			 * Read the output of METIS as partitionFile
+			 */
 			ArrayList<Integer> graphPartitionIndex = new ArrayList<Integer>();
 			graphPartitionIndex = UtilitiesMgmt.readMETISPartition(metisPartitionOutputFile, graphPartitionIndex);
 
@@ -130,11 +150,15 @@ public class GraphNetwork {
 
 			}
 
-			// Create a JavaPair Rdd of the adjacencyList
+			/**
+			 * Create a JavaPair Rdd of the adjacencyList
+			 */
 			JavaPairRDD<Object, Map<Object, Map<Object, Double>>> adjacencyListWithPartitionIndexRDD = jscontext
 					.parallelizePairs(adjacencyListWithPartitionIndex);
 
-			// Partition the RDD using the key of the JavaPairRDD
+			/**
+			 * Partition the RDD using the key of the JavaPairRDD
+			 */
 			JavaPairRDD<Object, Map<Object, Map<Object, Double>>> customPartitionedadjacencyListWithPartitionIndexRDD = adjacencyListWithPartitionIndexRDD
 					.partitionBy(new CustomPartitioner(2));
 
@@ -150,6 +174,7 @@ public class GraphNetwork {
 			System.out.println();
 
 			Map<Object, Object> BoundaryNodes = new HashMap<>();
+			ArrayList<Object> BoundaryNodeList = new ArrayList<>();
 			ArrayList<cEdge> BoundaryEdge = new ArrayList<>();
 
 			for (cEdge selectedEdge : cGraph.getEdgesWithInfo()) {
@@ -162,36 +187,67 @@ public class GraphNetwork {
 
 					BoundaryNodes.put(SrcId, vertexIdPartitionIndex.get(SrcId));
 					BoundaryNodes.put(DestId, vertexIdPartitionIndex.get(DestId));
-					BoundaryEdge.add(selectedEdge);
 
 				}
 
 			}
 
+			for (Object BoundaryVertex : BoundaryNodes.keySet()) {
+				BoundaryNodeList.add(BoundaryVertex);
+			}
+
 			System.out.println(BoundaryNodes);
-			System.out.println(BoundaryEdge);
+			// System.out.println(BoundaryEdge);
+
+			JavaRDD<Object> BoundaryVertexRDD = jscontext.parallelize(BoundaryNodeList);
+			JavaRDD<cEdge> BoundaryEdgeRDD = jscontext.parallelize(BoundaryEdge);
+
+			BoundaryVertexRDD.collect().forEach(x -> System.out.print(x + " "));
+			BoundaryEdgeRDD.collect().forEach(x -> System.out.print(x.getEdgeId() + " "));
 
 			List<Tuple2<Integer, ArrayList<RoadObject>>> roadObjectList = new ArrayList<>(
 					cGraph.getObjectsOnEdges().size());
 
 			for (Integer edgeId : cGraph.getObjectsOnEdges().keySet()) {
 				roadObjectList.add(
-						new Tuple2<Integer, ArrayList<RoadObject>>(edgeId, cGraph.getObjectsOnEdges().get(edgeId)));
+
+						new Tuple2<Integer, ArrayList<RoadObject>>((Integer) edgeId,
+								cGraph.getObjectsOnEdges().get(edgeId)));
 			}
 			JavaPairRDD<Integer, ArrayList<RoadObject>> roadObjectListRDD = jscontext.parallelizePairs(roadObjectList);
-			roadObjectListRDD.collect().forEach(System.out::println);
+			// roadObjectListRDD.collect().forEach(System.out::println);
 
-			ANNNaive annNaive = new ANNNaive();
-			long startTimeNaive = System.nanoTime();
-			annNaive.compute(cGraph, true);
-			long timeElapsed = System.nanoTime() - startTimeNaive;
-			double computationTime = (double) timeElapsed / 1000000000.0;
+			/**
+			 * Creating Embedded Network 1) Create a VIRTUAL NODE First with NodeId=maxvalue
+			 * 2) Create a graph connecting VIRTUAL NODE to every other boundary Nodes 3)
+			 * Set the weights as ZERO 4) Run the traversal from VIRTUAL NODE to other
+			 * BOUNDARY NODES 5) Calcuate the distance to the nearest node and store it in a
+			 * array
+			 **/
 
-			System.out.print("The time to compute ANN: " + computationTime);
+//			ANNNaive annNaive = new ANNNaive();
+//			long startTimeNaive = System.nanoTime();
+//			annNaive.compute(cGraph, true);
+//			long timeElapsed = System.nanoTime() - startTimeNaive;
+//			double computationTime = (double) timeElapsed / 1000000000.0;
+//
+//			System.out.print("The time to compute ANN: " + computationTime);
 
 			jscontext.close();
 		}
 
 	}
 
+	public static Tuple2<Object, Map<Object, Double>> createEmbeddedNetwork(
+			JavaPairRDD<Object, Object> BoundaryNodesRDD) {
+		Object virtualVertex = Integer.MAX_VALUE;
+
+		return null;
+
+	}
+
+	/**
+	 * ending bracket
+	 * 
+	 */
 }
