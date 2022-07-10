@@ -154,13 +154,14 @@ public class GraphNetwork {
 			 * Create a JavaPair Rdd of the adjacencyList
 			 */
 			JavaPairRDD<Object, Map<Object, Map<Object, Double>>> adjacencyListWithPartitionIndexRDD = jscontext
-					.parallelizePairs(adjacencyListWithPartitionIndex);
+					.parallelizePairs(adjacencyListWithPartitionIndex).partitionBy(new CustomPartitioner(2));
 
 			/**
 			 * Partition the RDD using the key of the JavaPairRDD
 			 */
 			JavaPairRDD<Object, Map<Object, Map<Object, Double>>> customPartitionedadjacencyListWithPartitionIndexRDD = adjacencyListWithPartitionIndexRDD
 					.partitionBy(new CustomPartitioner(2));
+			System.out.println("Partitions: " + customPartitionedadjacencyListWithPartitionIndexRDD.partitions());
 
 			JavaRDD<Integer> result = customPartitionedadjacencyListWithPartitionIndexRDD
 					.mapPartitionsWithIndex((idx, i) -> {
@@ -202,8 +203,9 @@ public class GraphNetwork {
 			JavaRDD<Object> BoundaryVertexRDD = jscontext.parallelize(BoundaryNodeList);
 			JavaRDD<cEdge> BoundaryEdgeRDD = jscontext.parallelize(BoundaryEdge);
 
-			BoundaryVertexRDD.collect().forEach(x -> System.out.print(x + " "));
-			BoundaryEdgeRDD.collect().forEach(x -> System.out.print(x.getEdgeId() + " "));
+			// BoundaryVertexRDD.collect().forEach(x -> System.out.print(x + " "));
+			// BoundaryEdgeRDD.collect().forEach(x -> System.out.print(x.getEdgeId() + "
+			// "));
 
 			List<Tuple2<Integer, ArrayList<RoadObject>>> roadObjectList = new ArrayList<>(
 					cGraph.getObjectsOnEdges().size());
@@ -222,8 +224,12 @@ public class GraphNetwork {
 			 * 2) Create a graph connecting VIRTUAL NODE to every other boundary Nodes 3)
 			 * Set the weights as ZERO 4) Run the traversal from VIRTUAL NODE to other
 			 * BOUNDARY NODES 5) Calcuate the distance to the nearest node and store it in a
-			 * array
+			 * array Tuple2<Object,Map<Object,Double>> VirtualGraph
 			 **/
+			JavaPairRDD<Object, Map<Object, Double>> embeddedNetworkRDD = jscontext
+					.parallelizePairs(createEmbeddedNetwork(BoundaryVertexRDD));
+			embeddedNetworkRDD.collect().forEach(
+					x -> System.out.print("Map: " + x + "\n" + " key: " + x._1 + " value: " + x._2 + "\n" + "\n"));
 
 //			ANNNaive annNaive = new ANNNaive();
 //			long startTimeNaive = System.nanoTime();
@@ -238,11 +244,17 @@ public class GraphNetwork {
 
 	}
 
-	public static Tuple2<Object, Map<Object, Double>> createEmbeddedNetwork(
-			JavaPairRDD<Object, Object> BoundaryNodesRDD) {
+	public static List<Tuple2<Object, Map<Object, Double>>> createEmbeddedNetwork(JavaRDD<Object> BoundaryVerticesRDD) {
 		Object virtualVertex = Integer.MAX_VALUE;
+		List<Tuple2<Object, Map<Object, Double>>> embeddedNetwork = new ArrayList<>();
+		for (Object BoundaryVertex : BoundaryVerticesRDD.collect()) {
+			Map<Object, Double> connectingVertex = new HashMap<Object, Double>();
+			connectingVertex.put(BoundaryVertex, 0.0);
+			embeddedNetwork.add(new Tuple2<Object, Map<Object, Double>>(virtualVertex, connectingVertex));
 
-		return null;
+		}
+
+		return embeddedNetwork;
 
 	}
 
