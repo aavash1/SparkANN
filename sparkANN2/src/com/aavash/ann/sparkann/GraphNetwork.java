@@ -230,6 +230,12 @@ public class GraphNetwork {
 					.parallelizePairs(createEmbeddedNetwork(BoundaryVertexRDD));
 			embeddedNetworkRDD.collect().forEach(
 					x -> System.out.print("Map: " + x + "\n" + " key: " + x._1 + " value: " + x._2 + "\n" + "\n"));
+			
+			
+			
+			/**
+			 * 
+			 */
 
 //			ANNNaive annNaive = new ANNNaive();
 //			long startTimeNaive = System.nanoTime();
