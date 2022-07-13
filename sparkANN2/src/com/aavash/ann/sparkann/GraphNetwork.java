@@ -15,10 +15,12 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.Function;
+import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.graphx.Edge;
 import org.apache.spark.graphx.Graph;
 import org.apache.spark.graphx.PartitionStrategy;
+import org.apache.spark.internal.config.R;
 import org.apache.spark.storage.StorageLevel;
 import com.aavash.ann.sparkann.algorithm.ANNNaive;
 import com.aavash.ann.sparkann.algorithm.RandomObjectGenerator;
@@ -161,7 +163,8 @@ public class GraphNetwork {
 			 */
 			JavaPairRDD<Object, Map<Object, Map<Object, Double>>> customPartitionedadjacencyListWithPartitionIndexRDD = adjacencyListWithPartitionIndexRDD
 					.partitionBy(new CustomPartitioner(2));
-			System.out.println("Partitions: " + customPartitionedadjacencyListWithPartitionIndexRDD.partitions());
+			// System.out.println("Partitions: " +
+			// customPartitionedadjacencyListWithPartitionIndexRDD.partitions());
 
 			JavaRDD<Integer> result = customPartitionedadjacencyListWithPartitionIndexRDD
 					.mapPartitionsWithIndex((idx, i) -> {
@@ -197,7 +200,7 @@ public class GraphNetwork {
 				BoundaryNodeList.add(BoundaryVertex);
 			}
 
-			System.out.println(BoundaryNodes);
+			// System.out.println(BoundaryNodes);
 			// System.out.println(BoundaryEdge);
 
 			JavaRDD<Object> BoundaryVertexRDD = jscontext.parallelize(BoundaryNodeList);
@@ -228,13 +231,15 @@ public class GraphNetwork {
 			 **/
 			JavaPairRDD<Object, Map<Object, Double>> embeddedNetworkRDD = jscontext
 					.parallelizePairs(createEmbeddedNetwork(BoundaryVertexRDD));
-			embeddedNetworkRDD.collect().forEach(
-					x -> System.out.print("Map: " + x + "\n" + " key: " + x._1 + " value: " + x._2 + "\n" + "\n"));
-			
-			
-			
+//			embeddedNetworkRDD.collect().forEach(
+//					x -> System.out.print("Map: " + x + "\n" + " key: " + x._1 + " value: " + x._2 + "\n" + "\n"));
+
+			adjacencyListWithPartitionIndexRDD.collect().forEach(x -> System.out.print(x + "\n"));
+
 			/**
-			 * 
+			 * Once the graph is created: 1) Combine the GraphRDD with RoadObjectPairRDD,
+			 * and BoundaryEdgeRDD. 2) Apply CustomPartitioner function on the newly created
+			 * RDD 3)
 			 */
 
 //			ANNNaive annNaive = new ANNNaive();
@@ -261,6 +266,18 @@ public class GraphNetwork {
 		}
 
 		return embeddedNetwork;
+
+	}
+
+	class graphWithRoadObjects implements
+			Function2<JavaPairRDD<Object, Map<Object, Map<Object, Double>>>, JavaPairRDD<Integer, ArrayList<RoadObject>>, R> {
+
+		@Override
+		public R call(JavaPairRDD<Object, Map<Object, Map<Object, Double>>> v1,
+				JavaPairRDD<Integer, ArrayList<RoadObject>> v2) throws Exception {
+			// TODO Auto-generated method stub
+			return null;
+		}
 
 	}
 
