@@ -48,14 +48,14 @@ public class GraphNetwork {
 		 * 1 Pass the path for loading the datasets 1.1 Dataset for graph containing
 		 * nodes and edges
 		 */
-		String nodeDatasetFile = "Dataset/ManualGraphNodes.txt";
-		String edgeDataSetFile = "Dataset/ManualGraphEdges.txt";
+		String nodeDatasetFile = "Dataset/PCManualGraphNodes.txt";
+		String edgeDataSetFile = "Dataset/PCManualGraphEdges.txt";
 
 		/**
 		 * 1.2 Dataset for METIS graph and Partition Output
 		 */
 		String metisInputGraph = "Metisgraph/ManualGraph.txt";
-		String metisPartitionOutputFile = "PartitionDataset/manualGr_part.txt";
+		String metisPartitionOutputFile = "PartitionDataset/PCmanualGr_part2.txt";
 
 		/**
 		 * Load Graph using CoreGraph Framework
@@ -156,13 +156,13 @@ public class GraphNetwork {
 			 * Create a JavaPair Rdd of the adjacencyList
 			 */
 			JavaPairRDD<Object, Map<Object, Map<Object, Double>>> adjacencyListWithPartitionIndexRDD = jscontext
-					.parallelizePairs(adjacencyListWithPartitionIndex).partitionBy(new CustomPartitioner(2));
+					.parallelizePairs(adjacencyListWithPartitionIndex).partitionBy(new CustomPartitioner(3));
 
 			/**
 			 * Partition the RDD using the key of the JavaPairRDD
 			 */
 			JavaPairRDD<Object, Map<Object, Map<Object, Double>>> customPartitionedadjacencyListWithPartitionIndexRDD = adjacencyListWithPartitionIndexRDD
-					.partitionBy(new CustomPartitioner(2));
+					.partitionBy(new CustomPartitioner(3));
 			// System.out.println("Partitions: " +
 			// customPartitionedadjacencyListWithPartitionIndexRDD.partitions());
 
@@ -206,9 +206,8 @@ public class GraphNetwork {
 			JavaRDD<Object> BoundaryVertexRDD = jscontext.parallelize(BoundaryNodeList);
 			JavaRDD<cEdge> BoundaryEdgeRDD = jscontext.parallelize(BoundaryEdge);
 
-			// BoundaryVertexRDD.collect().forEach(x -> System.out.print(x + " "));
-			// BoundaryEdgeRDD.collect().forEach(x -> System.out.print(x.getEdgeId() + "
-			// "));
+			BoundaryVertexRDD.collect().forEach(x -> System.out.print(x + " "));
+			BoundaryEdgeRDD.collect().forEach(x -> System.out.print(x.getEdgeId() + " "));
 
 			List<Tuple2<Integer, ArrayList<RoadObject>>> roadObjectList = new ArrayList<>(
 					cGraph.getObjectsOnEdges().size());
@@ -234,7 +233,7 @@ public class GraphNetwork {
 //			embeddedNetworkRDD.collect().forEach(
 //					x -> System.out.print("Map: " + x + "\n" + " key: " + x._1 + " value: " + x._2 + "\n" + "\n"));
 
-			adjacencyListWithPartitionIndexRDD.collect().forEach(x -> System.out.print(x + "\n"));
+		//	adjacencyListWithPartitionIndexRDD.collect().forEach(x -> System.out.print(x + "\n"));
 
 			/**
 			 * Once the graph is created: 1) Combine the GraphRDD with RoadObjectPairRDD,
