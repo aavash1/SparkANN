@@ -72,7 +72,7 @@ public class FinalGraph {
 		cGraph.setNodesWithInfo(nodesList);
 
 		// To validate logial graph is created
-		// cGraph.printEdgesInfo();
+		 cGraph.printEdgesInfo();
 		// cGraph.printNodesInfo();
 
 		// Generate Random Objects on Edge

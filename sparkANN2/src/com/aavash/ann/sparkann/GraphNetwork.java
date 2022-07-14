@@ -67,11 +67,16 @@ public class GraphNetwork {
 		 */
 		ArrayList<Node> nodesList = UtilsManagement.readTxtNodeFile(nodeDatasetFile);
 		cGraph.setNodesWithInfo(nodesList);
+		// cGraph.printEdgesInfo();
 
 		/**
-		 * Generate Random Objects on Edge Data Object=100 Query Object=500
+		 * Generate Random Objects on Edge Data Object=100 Query Object=500 Manual Road
+		 * Object is also used for testing
 		 */
-		RandomObjectGenerator.generateUniformRandomObjectsOnMap(cGraph, 100, 500);
+		// RandomObjectGenerator.generateUniformRandomObjectsOnMap(cGraph, 100, 500);
+		String PCManualObject = "Dataset/manualobject/ManualObjectsOnRoad.txt";
+		UtilsManagement.readRoadObjectTxtFile1(cGraph, PCManualObject);
+		cGraph.printObjectsOnEdges();
 
 		/**
 		 * Load Spark Necessary Items
@@ -191,6 +196,7 @@ public class GraphNetwork {
 
 					BoundaryNodes.put(SrcId, vertexIdPartitionIndex.get(SrcId));
 					BoundaryNodes.put(DestId, vertexIdPartitionIndex.get(DestId));
+					BoundaryEdge.add(selectedEdge);
 
 				}
 
@@ -206,8 +212,11 @@ public class GraphNetwork {
 			JavaRDD<Object> BoundaryVertexRDD = jscontext.parallelize(BoundaryNodeList);
 			JavaRDD<cEdge> BoundaryEdgeRDD = jscontext.parallelize(BoundaryEdge);
 
-			BoundaryVertexRDD.collect().forEach(x -> System.out.print(x + " "));
-			BoundaryEdgeRDD.collect().forEach(x -> System.out.print(x.getEdgeId() + " "));
+			// BoundaryVertexRDD.collect().forEach(x -> System.out.print(x + " "));
+			// System.out.println(" ");
+			// BoundaryEdgeRDD.collect().forEach(x -> System.out.print(x.getEdgeId() + "
+			// "));
+			// System.out.println(" ");
 
 			List<Tuple2<Integer, ArrayList<RoadObject>>> roadObjectList = new ArrayList<>(
 					cGraph.getObjectsOnEdges().size());
@@ -219,7 +228,7 @@ public class GraphNetwork {
 								cGraph.getObjectsOnEdges().get(edgeId)));
 			}
 			JavaPairRDD<Integer, ArrayList<RoadObject>> roadObjectListRDD = jscontext.parallelizePairs(roadObjectList);
-			// roadObjectListRDD.collect().forEach(System.out::println);
+			roadObjectListRDD.collect().forEach(System.out::println);
 
 			/**
 			 * Creating Embedded Network 1) Create a VIRTUAL NODE First with NodeId=maxvalue
@@ -230,10 +239,11 @@ public class GraphNetwork {
 			 **/
 			JavaPairRDD<Object, Map<Object, Double>> embeddedNetworkRDD = jscontext
 					.parallelizePairs(createEmbeddedNetwork(BoundaryVertexRDD));
-//			embeddedNetworkRDD.collect().forEach(
-//					x -> System.out.print("Map: " + x + "\n" + " key: " + x._1 + " value: " + x._2 + "\n" + "\n"));
+			embeddedNetworkRDD.collect().forEach(
+					x -> System.out.print("Map: " + x + "\n" + " key: " + x._1 + " value: " + x._2 + "\n" + "\n"));
 
-		//	adjacencyListWithPartitionIndexRDD.collect().forEach(x -> System.out.print(x + "\n"));
+			// adjacencyListWithPartitionIndexRDD.collect().forEach(x -> System.out.print(x
+			// + "\n"));
 
 			/**
 			 * Once the graph is created: 1) Combine the GraphRDD with RoadObjectPairRDD,

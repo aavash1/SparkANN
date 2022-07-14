@@ -794,6 +794,74 @@ public class UtilsManagement {
 
 	}
 
+	public static Map<Integer, ArrayList<RoadObject>> readRoadObjectTxtFile(CoreGraph cgraph, String txtFileName) {
+
+		Map<Integer, ArrayList<RoadObject>> m_objectsOnEdge = new HashMap<Integer, ArrayList<RoadObject>>();
+
+		String line = "";
+		try (BufferedReader br = new BufferedReader(new FileReader(txtFileName))) {
+			br.readLine();
+			while ((line = br.readLine()) != null) {
+				String[] record = line.split(txtSplitBy);
+				if (record.length == 4) {
+
+					RoadObject rObject = new RoadObject();
+					rObject.setObjId(Integer.parseInt(record[0]));
+					rObject.setType(Boolean.parseBoolean(record[1]));
+					rObject.setDistanceFromStartNode(Double.parseDouble(record[2]));
+
+					if (!m_objectsOnEdge.containsKey(Integer.parseInt(record[3]))) {
+						ArrayList<RoadObject> roadObjects = new ArrayList<RoadObject>();
+						m_objectsOnEdge.put(Integer.parseInt(record[3]), roadObjects);
+						cgraph.addObjectOnEdge(Integer.parseInt(record[3]), rObject);
+					}
+					if (!m_objectsOnEdge.get(Integer.parseInt(record[3])).contains(rObject)) {
+						m_objectsOnEdge.get(Integer.parseInt(record[3])).add(rObject);
+						cgraph.addObjectOnEdge(Integer.parseInt(record[3]), rObject);
+
+					}
+
+				}
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		return m_objectsOnEdge;
+
+	}
+
+	public static void readRoadObjectTxtFile1(CoreGraph cgraph, String txtFileName) {
+
+		Map<Integer, ArrayList<RoadObject>> m_objectsOnEdge = new HashMap<Integer, ArrayList<RoadObject>>();
+
+		String line = "";
+		try (BufferedReader br = new BufferedReader(new FileReader(txtFileName))) {
+			br.readLine();
+			while ((line = br.readLine()) != null) {
+				String[] record = line.split(txtSplitBy);
+				if (record.length == 4) {
+
+					RoadObject rObject = new RoadObject();
+					rObject.setObjId(Integer.parseInt(record[0]));
+					if (record[1].equals("T")) {
+						rObject.setType(true);
+					} else if (record[1].equals("F")) {
+						rObject.setType(false);
+					}
+
+					rObject.setDistanceFromStartNode(Double.parseDouble(record[2]));
+
+					cgraph.addObjectOnEdge(Integer.parseInt(record[3]), rObject);
+
+				}
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+	}
+
 	public static void writeObjectParameterInfo() {
 
 		// IF you need to have written those parameters in file
