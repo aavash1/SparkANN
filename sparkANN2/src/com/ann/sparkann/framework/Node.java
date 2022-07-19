@@ -1,5 +1,7 @@
 package com.ann.sparkann.framework;
 
+import java.util.Comparator;
+
 import scala.Serializable;
 
 public class Node implements Serializable {
