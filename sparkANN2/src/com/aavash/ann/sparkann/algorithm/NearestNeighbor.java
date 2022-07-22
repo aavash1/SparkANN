@@ -1,19 +1,24 @@
 package com.aavash.ann.sparkann.algorithm;
 
-
-
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.Queue;
 import java.util.Set;
+import java.util.function.Function;
 
 import org.apache.commons.collections4.MultiValuedMap;
 import org.apache.commons.collections4.multimap.HashSetValuedHashMap;
 
 import com.ann.sparkann.framework.*;
-import com.ann.sparkann.framework.UtilsManagement;
 
 public class NearestNeighbor {
 
@@ -67,7 +72,8 @@ public class NearestNeighbor {
 		while (nonClearedNodeQueue.size() != 0) {
 
 			currentNode = nonClearedNodeQueue.poll();
-			double distanceFromQueryToCurrentNode = UtilsManagement.getMapKey(foundNodesWithSortedDistance, currentNode);
+			double distanceFromQueryToCurrentNode = UtilsManagement.getMapKey(foundNodesWithSortedDistance,
+					currentNode);
 
 			Iterator<Integer> iteratorAdjNodes = m_graph.getAdjNodeIds(currentNode).listIterator();
 			while (iteratorAdjNodes.hasNext()) {
@@ -165,7 +171,8 @@ public class NearestNeighbor {
 		while (nonClearedNodeQueue.size() != 0) {
 
 			currentNode = nonClearedNodeQueue.poll();
-			double distanceFromQueryToCurrentNode = UtilsManagement.getMapKey(foundNodesWithSortedDistance, currentNode);
+			double distanceFromQueryToCurrentNode = UtilsManagement.getMapKey(foundNodesWithSortedDistance,
+					currentNode);
 
 			Iterator<Integer> iteratorAdjNodes = m_graph.getAdjNodeIds(currentNode).listIterator();
 			while (iteratorAdjNodes.hasNext()) {
@@ -256,7 +263,8 @@ public class NearestNeighbor {
 		while (nonClearedNodeQueue.size() != 0) {
 
 			currentNode = nonClearedNodeQueue.poll();
-			double distanceFromQueryToCurrentNode = UtilsManagement.getMapKey(foundNodesWithSortedDistance, currentNode);
+			double distanceFromQueryToCurrentNode = UtilsManagement.getMapKey(foundNodesWithSortedDistance,
+					currentNode);
 
 			Iterator<Integer> iteratorAdjNodes = m_graph.getAdjNodeIds(currentNode).listIterator();
 			while (iteratorAdjNodes.hasNext()) {
@@ -288,7 +296,8 @@ public class NearestNeighbor {
 
 						nonClearedNodeQueue.add(adjNode);
 					} else {
-						if (distanceFromQueryToAdjNode < UtilsManagement.getMinimumKey(foundObjectsWithSortedDistance)) {
+						if (distanceFromQueryToAdjNode < UtilsManagement
+								.getMinimumKey(foundObjectsWithSortedDistance)) {
 							nonClearedNodeQueue.add(adjNode);
 						}
 					}
@@ -378,7 +387,8 @@ public class NearestNeighbor {
 						+ " current node " + currentNode);
 			}
 
-			double distanceFromQueryToCurrentNode = UtilsManagement.getMapKey(foundNodesWithSortedDistance, currentNode);
+			double distanceFromQueryToCurrentNode = UtilsManagement.getMapKey(foundNodesWithSortedDistance,
+					currentNode);
 
 			Iterator<Integer> iteratorAdjNodes = m_graph.getAdjNodeIds(currentNode).listIterator();
 			while (iteratorAdjNodes.hasNext()) {
@@ -409,7 +419,8 @@ public class NearestNeighbor {
 
 						nonClearedNodeQueue.add(adjNode);
 					} else {
-						if (distanceFromQueryToAdjNode < UtilsManagement.getMinimumKey(foundObjectsWithSortedDistance)) {
+						if (distanceFromQueryToAdjNode < UtilsManagement
+								.getMinimumKey(foundObjectsWithSortedDistance)) {
 							nonClearedNodeQueue.add(adjNode);
 						}
 					}

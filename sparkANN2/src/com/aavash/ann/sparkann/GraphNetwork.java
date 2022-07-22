@@ -1,14 +1,14 @@
 package com.aavash.ann.sparkann;
 
 import java.io.IOException;
-import java.util.ArrayDeque;
+
 import java.util.ArrayList;
 
 import java.util.HashMap;
-import java.util.LinkedList;
+
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
+
 import java.util.Vector;
 
 import org.apache.log4j.Level;
@@ -18,15 +18,13 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.Function;
-import org.apache.spark.api.java.function.Function2;
-import org.apache.spark.api.java.function.PairFunction;
+
 import org.apache.spark.graphx.Edge;
 import org.apache.spark.graphx.Graph;
 import org.apache.spark.graphx.PartitionStrategy;
 import org.apache.spark.internal.config.R;
 import org.apache.spark.storage.StorageLevel;
-import com.aavash.ann.sparkann.algorithm.ANNNaive;
-import com.aavash.ann.sparkann.algorithm.RandomObjectGenerator;
+
 import com.aavash.ann.sparkann.graph.CustomPartitioner;
 import com.ann.sparkann.framework.CoreGraph;
 import com.ann.sparkann.framework.Node;
@@ -36,9 +34,12 @@ import com.ann.sparkann.framework.UtilsManagement;
 import com.ann.sparkann.framework.cEdge;
 import com.google.common.collect.LinkedHashMultimap;
 
-import io.netty.util.internal.PriorityQueue;
 import scala.Tuple2;
 import scala.reflect.ClassTag;
+
+import edu.ufl.cise.bsmock.graph.*;
+import edu.ufl.cise.bsmock.graph.ksp.Yen;
+import edu.ufl.cise.bsmock.graph.util.Path;
 
 public class GraphNetwork {
 
@@ -66,6 +67,7 @@ public class GraphNetwork {
 		 * Load Graph using CoreGraph Framework
 		 */
 		CoreGraph cGraph = UtilsManagement.readEdgeTxtFileReturnGraph(edgeDataSetFile);
+		YenGraph yGraph = new YenGraph(edgeDataSetFile);
 
 		/**
 		 * Create Vertices List from the nodeDataset
@@ -75,31 +77,23 @@ public class GraphNetwork {
 		// cGraph.printEdgesInfo();
 
 		/**
+		 * Test the YenGraph for finding SPF between two vertex
+		 */
+
+		/**
 		 * Generate Random Objects on Edge Data Object=100 Query Object=500 Manual Road
 		 * Object is also used for testing
 		 */
 		// RandomObjectGenerator.generateUniformRandomObjectsOnMap(cGraph, 100, 500);
 		String PCManualObject = "Dataset/manualobject/ManualObjectsOnRoad.txt";
 		UtilsManagement.readRoadObjectTxtFile1(cGraph, PCManualObject);
-		cGraph.printObjectsOnEdges();
+		// cGraph.printObjectsOnEdges();
 
 		/**
 		 * Load Spark Necessary Items
 		 */
 		Logger.getLogger("org.apache").setLevel(Level.WARN);
 
-		/**
-		 * This is for testing the paths between two vertex
-		 */
-		int N = cGraph.getNodesWithInfo().size();
-		int M = cGraph.getAdjancencyMap().size();
-
-		int sourceVertex = 1;
-		int destinationVertex = 12;
-
-		int k = 2;
-
-		kthLargestPathUtil(cGraph, N, M, sourceVertex, destinationVertex, k);
 		/**
 		 * Actual Spark thing opens here
 		 */
@@ -207,7 +201,10 @@ public class GraphNetwork {
 			Map<Object, Object> BoundaryNodes = new HashMap<>();
 			ArrayList<Object> BoundaryNodeList = new ArrayList<>();
 			ArrayList<cEdge> BoundaryEdge = new ArrayList<>();
-			// Map<Object,ArrayList<Object>> Boundaries=new HashMap<>();
+
+			// This map holds partitionIndex as keys and ArrayList of Border vertices as
+			// values
+			Map<Object, ArrayList<Object>> Boundaries = new HashMap<>();
 
 			for (cEdge selectedEdge : cGraph.getEdgesWithInfo()) {
 				int SrcId = selectedEdge.getStartNodeId();
@@ -226,11 +223,27 @@ public class GraphNetwork {
 			}
 
 			for (Object BoundaryVertex : BoundaryNodes.keySet()) {
+
 				BoundaryNodeList.add(BoundaryVertex);
+
+				if (Boundaries.isEmpty()) {
+					ArrayList<Object> vertices = new ArrayList<Object>();
+					vertices.add(BoundaryVertex);
+					Boundaries.put(BoundaryNodes.get(BoundaryVertex), vertices);
+
+				} else if (Boundaries.containsKey(BoundaryNodes.get(BoundaryVertex))) {
+					Boundaries.get(BoundaryNodes.get(BoundaryVertex)).add(BoundaryVertex);
+				} else if (!(Boundaries.isEmpty()) && (!Boundaries.containsKey(BoundaryNodes.get(BoundaryVertex)))) {
+					ArrayList<Object> vertices = new ArrayList<Object>();
+					vertices.add(BoundaryVertex);
+					Boundaries.put(BoundaryNodes.get(BoundaryVertex), vertices);
+
+				}
 			}
 
-			// System.out.println(BoundaryNodes);
+			System.out.println(BoundaryNodes);
 			// System.out.println(BoundaryEdge);
+			System.out.println(Boundaries);
 
 			JavaRDD<Object> BoundaryVertexRDD = jscontext.parallelize(BoundaryNodeList);
 			JavaRDD<cEdge> BoundaryEdgeRDD = jscontext.parallelize(BoundaryEdge);
@@ -252,6 +265,19 @@ public class GraphNetwork {
 			}
 			JavaPairRDD<Integer, ArrayList<RoadObject>> roadObjectListRDD = jscontext.parallelizePairs(roadObjectList);
 			// roadObjectListRDD.collect().forEach(System.out::println);
+
+			/**
+			 * Using the Boundaries hashmap <PartitionIndex, ArrayList<BorderVertices> to
+			 * find the shortest path from one partition to anothe partition
+			 */
+			ArrayList<List<Path>> shortestpathList = runSPF(yGraph, Boundaries);
+
+			int n = 0;
+			for (List<Path> p1 : shortestpathList) {
+				for (Path p : p1) {
+					System.out.println(++n + ")" + p);
+				}
+			}
 
 			/**
 			 * Creating Embedded Network 1) Create a VIRTUAL NODE First with NodeId=maxvalue
@@ -302,111 +328,22 @@ public class GraphNetwork {
 
 	}
 
-	public static void visitPaths(CoreGraph cg, Integer src, Integer dest) {
+	public static ArrayList<List<Path>> runSPF(YenGraph yenG, Map<Object, ArrayList<Object>> boundaries) {
 
-		boolean[] isVistied = new boolean[cg.getNodesWithInfo().size()];
-		ArrayList<Integer> pathList = new ArrayList<>();
+		ArrayList<List<Path>> SPList = new ArrayList<List<Path>>();
+		for (int i = 0; i < boundaries.size(); i++) {
+			for (Object start : boundaries.get(i)) {
+				String sourceId = (String) start;
+				for (int j = 0; i < boundaries.get(i + 1).size(); j++) {
+					String destination = (String) boundaries.get(i + 1).get(j);
+					Yen yenAlg = new Yen();
+					List<Path> ksp = yenAlg.ksp(yenG, sourceId, destination, 1);
+					SPList.add(ksp);
 
-		pathList.add(src);
-
-		printAllPathsUtil(cg, src, dest, isVistied, pathList);
-
-	}
-
-	private static void printAllPathsUtil(CoreGraph cg, Integer u, Integer d, boolean[] isVisited,
-			List<Integer> localPathList) {
-
-		if (u.equals(d)) {
-			System.out.println(localPathList);
-			return;
-		}
-
-		isVisited[u] = true;
-
-		for (Integer i : cg.getAdjacencyEdgeIds(u)) {
-			if (!isVisited[i]) {
-				localPathList.add(i);
-				printAllPathsUtil(cg, i, d, isVisited, localPathList);
-
-				localPathList.remove(i);
+				}
 			}
-
 		}
-		isVisited[u] = false;
-
-	}
-
-	class shortestPathBetweenBorderVertex implements Function<Map<Integer, Map<Integer, Double>>, R> {
-		@Override
-		public R call(Map<Integer, Map<Integer, Double>> cGraphMap) throws Exception {
-			// TODO Auto-generated method stub
-			return null;
-		}
-	};
-
-	static class Pair implements Comparable<Pair> {
-		// weight so far
-		double wsf;
-
-		// path so far
-		String psf;
-
-		Pair(double wsf, String psf) {
-			// TODO Auto-generated constructor stub
-			this.wsf = wsf;
-			this.psf = psf;
-		}
-
-		@Override
-		public int compareTo(Pair o) {
-			return Double.compare(wsf, o.wsf);
-
-		}
-	}
-
-	static Vector<Pair> pq = new Vector<Pair>();
-
-	private static void kthLargest(CoreGraph graph, int src, int dest, boolean[] visited, int k, String psf,
-			double wsf) {
-
-		if (src == dest) {
-			if (pq.size() < k) {
-				pq.add(new Pair(wsf, psf));
-
-			} else if (wsf > pq.indexOf(wsf)) {
-				pq.remove(wsf);
-				pq.add(new Pair(wsf, psf));
-			}
-			return;
-		}
-
-		visited[src] = true;
-
-		for (cEdge e : graph.getEdgesWithInfo()) {
-
-			if (!visited[e.getEndNodeId()]) {
-				kthLargest(graph, e.getEndNodeId(), dest, visited, k, psf + e.getEndNodeId(), wsf + e.getLength());
-			}
-
-		}
-
-		visited[src] = false;
-
-	}
-
-	// N= number of vertice, M= number of edges
-	private static void kthLargestPathUtil(CoreGraph gr, int N, int M, int src, int dest, int k) {
-
-		boolean[] visited = new boolean[gr.getNodesWithInfo().size()];
-
-		kthLargest(gr, src, dest, visited, k, src + " ", 0);
-
-		String path = pq.firstElement().psf;
-
-		for (int i = 0; i < path.length(); i++) {
-			System.out.print(path.charAt(i) + " ");
-		}
-
+		return SPList;
 	}
 
 	/**
