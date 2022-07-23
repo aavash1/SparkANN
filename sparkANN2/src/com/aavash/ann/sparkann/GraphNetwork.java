@@ -199,13 +199,13 @@ public class GraphNetwork {
 			System.out.println();
 
 			Map<Object, Object> BoundaryNodes = new HashMap<>();
-			ArrayList<Object> BoundaryNodeList = new ArrayList<>();
+			ArrayList<String> BoundaryNodeList = new ArrayList<>();
 			ArrayList<cEdge> BoundaryEdge = new ArrayList<>();
 
 			// This map holds partitionIndex as keys and ArrayList of Border vertices as
 			// values
 			Map<Object, ArrayList<Object>> Boundaries = new HashMap<>();
-
+			Map<Integer, ArrayList<String>> strBoundaries = new HashMap<>();
 			for (cEdge selectedEdge : cGraph.getEdgesWithInfo()) {
 				int SrcId = selectedEdge.getStartNodeId();
 				int DestId = selectedEdge.getEndNodeId();
@@ -224,32 +224,40 @@ public class GraphNetwork {
 
 			for (Object BoundaryVertex : BoundaryNodes.keySet()) {
 
-				BoundaryNodeList.add(BoundaryVertex);
+				BoundaryNodeList.add(String.valueOf(BoundaryVertex));
 
 				if (Boundaries.isEmpty()) {
 					ArrayList<Object> vertices = new ArrayList<Object>();
+					ArrayList<String> strVertices = new ArrayList<String>();
 					vertices.add(BoundaryVertex);
+					strVertices.add(String.valueOf(BoundaryVertex));
 					Boundaries.put(BoundaryNodes.get(BoundaryVertex), vertices);
+					strBoundaries.put(Integer.parseInt(String.valueOf(BoundaryNodes.get(BoundaryVertex))), strVertices);
 
 				} else if (Boundaries.containsKey(BoundaryNodes.get(BoundaryVertex))) {
 					Boundaries.get(BoundaryNodes.get(BoundaryVertex)).add(BoundaryVertex);
+					strBoundaries.get(Integer.parseInt(String.valueOf(BoundaryNodes.get(BoundaryVertex))))
+							.add(String.valueOf(BoundaryVertex));
 				} else if (!(Boundaries.isEmpty()) && (!Boundaries.containsKey(BoundaryNodes.get(BoundaryVertex)))) {
 					ArrayList<Object> vertices = new ArrayList<Object>();
+					ArrayList<String> strVertices = new ArrayList<String>();
 					vertices.add(BoundaryVertex);
+					strVertices.add(String.valueOf(BoundaryVertex));
 					Boundaries.put(BoundaryNodes.get(BoundaryVertex), vertices);
+					strBoundaries.put(Integer.parseInt(String.valueOf(BoundaryNodes.get(BoundaryVertex))), strVertices);
 
 				}
 			}
 
-			System.out.println(BoundaryNodes);
+			// System.out.println(BoundaryNodes);
 			// System.out.println(BoundaryEdge);
-			System.out.println(Boundaries);
+			System.out.println(strBoundaries);
 
-			JavaRDD<Object> BoundaryVertexRDD = jscontext.parallelize(BoundaryNodeList);
+			JavaRDD<String> BoundaryVertexRDD = jscontext.parallelize(BoundaryNodeList);
 			JavaRDD<cEdge> BoundaryEdgeRDD = jscontext.parallelize(BoundaryEdge);
 
-			// BoundaryVertexRDD.collect().forEach(x -> System.out.print(x + " "));
-			// System.out.println(" ");
+			BoundaryVertexRDD.collect().forEach(x -> System.out.print(x + " "));
+			System.out.println(" ");
 			// BoundaryEdgeRDD.collect().forEach(x -> System.out.print(x.getEdgeId() + "
 			// "));
 			// System.out.println(" ");
@@ -270,12 +278,33 @@ public class GraphNetwork {
 			 * Using the Boundaries hashmap <PartitionIndex, ArrayList<BorderVertices> to
 			 * find the shortest path from one partition to anothe partition
 			 */
-			ArrayList<List<Path>> shortestpathList = runSPF(yGraph, Boundaries);
 
-			int n = 0;
-			for (List<Path> p1 : shortestpathList) {
-				for (Path p : p1) {
-					System.out.println(++n + ")" + p);
+			// ArrayList<List<Path>> shortestpathList = runSPF(yGraph, Boundaries);
+//
+//			int n = 0;
+//			for (List<Path> p1 : shortestpathList) {
+//				for (Path p : p1) {
+//					System.out.println(++n + ")" + p);
+//				}
+//			}
+//
+//			for (int i = 0; i < BoundaryNodeList.size(); i++) {
+//				String srcVertex = BoundaryNodeList.get(i);
+//				for (int j = 1; j < strBoundaries.size(); j++) {
+//					for (String popOut : strBoundaries.get(j)) {
+//						String destVertex = popOut;
+//						System.out.println(i + "-th iteration, the source is: " + srcVertex
+//								+ ", and the destination is: " + destVertex);
+//					}
+//				}
+//			}
+
+			for (int i = 0; i < strBoundaries.size(); i++) {
+				System.out.println("i's size: " + strBoundaries.get(i).size() + " i: " + strBoundaries.get(i));
+				for (int j = 0; j < strBoundaries.get(i).size(); j++) {
+					System.out.println("j: " + strBoundaries.get(i).get(j));
+					
+
 				}
 			}
 
@@ -314,7 +343,7 @@ public class GraphNetwork {
 
 	}
 
-	public static List<Tuple2<Object, Map<Object, Double>>> createEmbeddedNetwork(JavaRDD<Object> BoundaryVerticesRDD) {
+	public static List<Tuple2<Object, Map<Object, Double>>> createEmbeddedNetwork(JavaRDD<String> BoundaryVerticesRDD) {
 		Object virtualVertex = Integer.MAX_VALUE;
 		List<Tuple2<Object, Map<Object, Double>>> embeddedNetwork = new ArrayList<>();
 		for (Object BoundaryVertex : BoundaryVerticesRDD.collect()) {
@@ -331,17 +360,20 @@ public class GraphNetwork {
 	public static ArrayList<List<Path>> runSPF(YenGraph yenG, Map<Object, ArrayList<Object>> boundaries) {
 
 		ArrayList<List<Path>> SPList = new ArrayList<List<Path>>();
-		for (int i = 0; i < boundaries.size(); i++) {
-			for (Object start : boundaries.get(i)) {
-				String sourceId = (String) start;
-				for (int j = 0; i < boundaries.get(i + 1).size(); j++) {
-					String destination = (String) boundaries.get(i + 1).get(j);
-					Yen yenAlg = new Yen();
-					List<Path> ksp = yenAlg.ksp(yenG, sourceId, destination, 1);
-					SPList.add(ksp);
+		Yen yenAlgo = new Yen();
 
+		for (int i = 0; i < boundaries.keySet().size(); i++) {
+			for (int j = 0; j < boundaries.get(i).size(); j++) {
+				String srcVertex = (String) boundaries.get(i).get(j);
+				for (int k = i + 1; k < boundaries.keySet().size(); k++) {
+					for (int l = 0; l < boundaries.get(k).size(); k++) {
+						String destVertex = (String) boundaries.get(k).get(l);
+						List<Path> kshortestPathList = yenAlgo.ksp(yenG, srcVertex, destVertex, 1);
+						SPList.add(kshortestPathList);
+					}
 				}
 			}
+
 		}
 		return SPList;
 	}
