@@ -279,13 +279,14 @@ public class GraphNetwork {
 
 			/**
 			 * Using the Boundaries hashmap <PartitionIndex, ArrayList<BorderVertices> to
-			 * find the shortest path from one partition to anothe partition
+			 * find the shortest path from one partition to another partition Storing all
+			 * the vertex that are in shortest path list in a separate ArrayList
 			 */
 			ArrayList<List<Path>> shortestPathList = runSPF(yGraph, strBoundaries, CustomPartitionSize);
 
 			List<Integer> shortestpathsUnion = unifyAllShortestPaths(shortestPathList);
 
-			System.out.println(shortestpathsUnion);
+			//System.out.println(shortestpathsUnion);
 
 			/**
 			 * Creating Embedded Network 1) Create a VIRTUAL NODE First with NodeId=maxvalue
