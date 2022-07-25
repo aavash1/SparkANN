@@ -5,7 +5,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 import java.util.HashMap;
-
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -176,14 +177,16 @@ public class GraphNetwork {
 			/**
 			 * Create a JavaPair Rdd of the adjacencyList
 			 */
+			int CustomPartitionSize = 3;
 			JavaPairRDD<Object, Map<Object, Map<Object, Double>>> adjacencyListWithPartitionIndexRDD = jscontext
-					.parallelizePairs(adjacencyListWithPartitionIndex).partitionBy(new CustomPartitioner(3));
+					.parallelizePairs(adjacencyListWithPartitionIndex)
+					.partitionBy(new CustomPartitioner(CustomPartitionSize));
 
 			/**
 			 * Partition the RDD using the key of the JavaPairRDD
 			 */
 			JavaPairRDD<Object, Map<Object, Map<Object, Double>>> customPartitionedadjacencyListWithPartitionIndexRDD = adjacencyListWithPartitionIndexRDD
-					.partitionBy(new CustomPartitioner(3));
+					.partitionBy(new CustomPartitioner(CustomPartitionSize));
 			// System.out.println("Partitions: " +
 			// customPartitionedadjacencyListWithPartitionIndexRDD.partitions());
 
@@ -199,13 +202,13 @@ public class GraphNetwork {
 			System.out.println();
 
 			Map<Object, Object> BoundaryNodes = new HashMap<>();
-			ArrayList<String> BoundaryNodeList = new ArrayList<>();
+			LinkedList<String> BoundaryNodeList = new LinkedList<>();
 			ArrayList<cEdge> BoundaryEdge = new ArrayList<>();
 
 			// This map holds partitionIndex as keys and ArrayList of Border vertices as
 			// values
 			Map<Object, ArrayList<Object>> Boundaries = new HashMap<>();
-			Map<Integer, ArrayList<String>> strBoundaries = new HashMap<>();
+			LinkedHashMap<Integer, ArrayList<String>> strBoundaries = new LinkedHashMap<>();
 			for (cEdge selectedEdge : cGraph.getEdgesWithInfo()) {
 				int SrcId = selectedEdge.getStartNodeId();
 				int DestId = selectedEdge.getEndNodeId();
@@ -278,35 +281,11 @@ public class GraphNetwork {
 			 * Using the Boundaries hashmap <PartitionIndex, ArrayList<BorderVertices> to
 			 * find the shortest path from one partition to anothe partition
 			 */
+			ArrayList<List<Path>> shortestPathList = runSPF(yGraph, strBoundaries, CustomPartitionSize);
 
-			// ArrayList<List<Path>> shortestpathList = runSPF(yGraph, Boundaries);
-//
-//			int n = 0;
-//			for (List<Path> p1 : shortestpathList) {
-//				for (Path p : p1) {
-//					System.out.println(++n + ")" + p);
-//				}
-//			}
-//
-//			for (int i = 0; i < BoundaryNodeList.size(); i++) {
-//				String srcVertex = BoundaryNodeList.get(i);
-//				for (int j = 1; j < strBoundaries.size(); j++) {
-//					for (String popOut : strBoundaries.get(j)) {
-//						String destVertex = popOut;
-//						System.out.println(i + "-th iteration, the source is: " + srcVertex
-//								+ ", and the destination is: " + destVertex);
-//					}
-//				}
-//			}
+			List<Integer> shortestpathsUnion = unifyAllShortestPaths(shortestPathList);
 
-			for (int i = 0; i < strBoundaries.size(); i++) {
-				System.out.println("i's size: " + strBoundaries.get(i).size() + " i: " + strBoundaries.get(i));
-				for (int j = 0; j < strBoundaries.get(i).size(); j++) {
-					System.out.println("j: " + strBoundaries.get(i).get(j));
-					
-
-				}
-			}
+			System.out.println(shortestpathsUnion);
 
 			/**
 			 * Creating Embedded Network 1) Create a VIRTUAL NODE First with NodeId=maxvalue
@@ -357,25 +336,55 @@ public class GraphNetwork {
 
 	}
 
-	public static ArrayList<List<Path>> runSPF(YenGraph yenG, Map<Object, ArrayList<Object>> boundaries) {
+	public static ArrayList<List<Path>> runSPF(YenGraph yenG, HashMap<Integer, ArrayList<String>> boundaries,
+			int partSize) {
 
 		ArrayList<List<Path>> SPList = new ArrayList<List<Path>>();
 		Yen yenAlgo = new Yen();
 
-		for (int i = 0; i < boundaries.keySet().size(); i++) {
-			for (int j = 0; j < boundaries.get(i).size(); j++) {
-				String srcVertex = (String) boundaries.get(i).get(j);
-				for (int k = i + 1; k < boundaries.keySet().size(); k++) {
-					for (int l = 0; l < boundaries.get(k).size(); k++) {
-						String destVertex = (String) boundaries.get(k).get(l);
-						List<Path> kshortestPathList = yenAlgo.ksp(yenG, srcVertex, destVertex, 1);
-						SPList.add(kshortestPathList);
+		for (Integer mapIndex : boundaries.keySet()) {
+
+			if (mapIndex < partSize) {
+				for (int i = 0; i < boundaries.get(mapIndex).size(); i++) {
+					String sourceVertex = boundaries.get(mapIndex).get(i);
+
+					if ((mapIndex + 1) < boundaries.size()) {
+						for (int j = 0; j < boundaries.get(mapIndex + 1).size(); j++) {
+							String destinationVertex = boundaries.get(mapIndex + 1).get(j);
+							List<Path> pathList = new LinkedList<Path>();
+							pathList = yenAlgo.ksp(yenG, sourceVertex, destinationVertex, 1);
+							SPList.add(pathList);
+							// System.out.println(sourceVertex + " -> " + destinationVertex);
+						}
 					}
+
 				}
+
 			}
 
 		}
 		return SPList;
+	}
+
+	public static LinkedList<Integer> unifyAllShortestPaths(ArrayList<List<Path>> spfList) {
+		LinkedList<Integer> shortestpathsUnion = new LinkedList<Integer>();
+
+		for (List<Path> p : spfList) {
+			for (int i = 0; i < p.size(); i++) {
+				for (int j = 0; j < p.get(i).getNodes().size(); j++) {
+					int vertex = Integer.parseInt(p.get(i).getNodes().get(j));
+					if (!shortestpathsUnion.contains(vertex)) {
+
+						shortestpathsUnion.add(vertex);
+						System.out.println("added " + vertex);
+					}
+
+				}
+				System.out.println(" ");
+			}
+		}
+
+		return shortestpathsUnion;
 	}
 
 	/**
