@@ -25,6 +25,7 @@ import org.apache.spark.graphx.Graph;
 import org.apache.spark.graphx.PartitionStrategy;
 import org.apache.spark.internal.config.R;
 import org.apache.spark.storage.StorageLevel;
+import org.apache.zookeeper.ZooDefs.Ids;
 
 import com.aavash.ann.sparkann.graph.CustomPartitioner;
 import com.ann.sparkann.framework.CoreGraph;
@@ -35,6 +36,7 @@ import com.ann.sparkann.framework.UtilsManagement;
 import com.ann.sparkann.framework.cEdge;
 import com.google.common.collect.LinkedHashMultimap;
 
+import scala.Function2;
 import scala.Tuple2;
 import scala.reflect.ClassTag;
 
@@ -65,7 +67,7 @@ public class GraphNetwork {
 		String metisPartitionOutputFile = "PartitionDataset/PCmanualGr_part2.txt";
 
 		/**
-		 * Load Graph using CoreGraph Framework
+		 * Load Graph using CoreGraph Framework, YenGraph for calculating shortest paths
 		 */
 		CoreGraph cGraph = UtilsManagement.readEdgeTxtFileReturnGraph(edgeDataSetFile);
 		YenGraph yGraph = new YenGraph(edgeDataSetFile);
@@ -187,8 +189,7 @@ public class GraphNetwork {
 			 */
 			JavaPairRDD<Object, Map<Object, Map<Object, Double>>> customPartitionedadjacencyListWithPartitionIndexRDD = adjacencyListWithPartitionIndexRDD
 					.partitionBy(new CustomPartitioner(CustomPartitionSize));
-			// System.out.println("Partitions: " +
-			// customPartitionedadjacencyListWithPartitionIndexRDD.partitions());
+			System.out.println("Partitions: " + customPartitionedadjacencyListWithPartitionIndexRDD.partitions());
 
 			JavaRDD<Integer> result = customPartitionedadjacencyListWithPartitionIndexRDD
 					.mapPartitionsWithIndex((idx, i) -> {
@@ -254,13 +255,13 @@ public class GraphNetwork {
 
 			// System.out.println(BoundaryNodes);
 			// System.out.println(BoundaryEdge);
-			System.out.println(strBoundaries);
+			// System.out.println(strBoundaries);
 
 			JavaRDD<String> BoundaryVertexRDD = jscontext.parallelize(BoundaryNodeList);
 			JavaRDD<cEdge> BoundaryEdgeRDD = jscontext.parallelize(BoundaryEdge);
 
-			BoundaryVertexRDD.collect().forEach(x -> System.out.print(x + " "));
-			System.out.println(" ");
+//			BoundaryVertexRDD.collect().forEach(x -> System.out.print(x + " "));
+//			System.out.println(" ");
 			// BoundaryEdgeRDD.collect().forEach(x -> System.out.print(x.getEdgeId() + "
 			// "));
 			// System.out.println(" ");
@@ -283,18 +284,41 @@ public class GraphNetwork {
 			 * the vertex that are in shortest path list in a separate ArrayList
 			 */
 			ArrayList<List<Path>> shortestPathList = runSPF(yGraph, strBoundaries, CustomPartitionSize);
+//			System.out.println("Verify the shortest-paths");
+//			for (List<Path> p1 : shortestPathList) {
+//				System.out.println(p1 + " ");
+//			}
 
 			List<Integer> shortestpathsUnion = unifyAllShortestPaths(shortestPathList);
+			System.out.println();
+//			System.out.println(shortestpathsUnion);
 
-			//System.out.println(shortestpathsUnion);
+//			List<Path> spflist = getSPFbetweenTwoNodes(yGraph, "38", "23", 2);
 
 			/**
-			 * Creating Embedded Network 1) Create a VIRTUAL NODE First with NodeId=maxvalue
-			 * 2) Create a graph connecting VIRTUAL NODE to every other boundary Nodes 3)
-			 * Set the weights as ZERO 4) Run the traversal from VIRTUAL NODE to other
-			 * BOUNDARY NODES 5) Calcuate the distance to the nearest node and store it in a
-			 * array Tuple2<Object,Map<Object,Double>> VirtualGraph
+			 * Creating Embedded Network Graph: 1) Initially create a Virtual Vertex 2)
+			 * Create a Embedded graph connecting VIRTUAL NODE to every other boundary Nodes
+			 * 3) Set the weights as ZERO 4) Run the traversal from VIRTUAL NODE to other
+			 * BOUNDARY NODES 5) Calculate the distance to the nearest node and store it in
+			 * a array Tuple2<Object,Map<Object,Double>> VirtualGraph
 			 **/
+
+//			for (List<Path> p1 : shortestPathList) {
+//				for (Path p : p1) {
+//					// System.out.println("GetNodes: " + p.getNodes() + " ");
+//					System.out.println("From: " + p.getEdges().getFirst().getFromNode() + " To: "
+//							+ p.getEdges().getLast().getToNode() + " " + " total Cost: " + p.getTotalCost() + " ");
+//					System.out.println(" ");
+//
+//				}
+//
+//			}
+
+			CoreGraph spGraph = readSPFreturnGraph(shortestPathList);
+			System.out.println(" ");
+			// cGraph.printEdgesInfo();
+			spGraph.printEdgesInfo();
+
 			JavaPairRDD<Object, Map<Object, Double>> embeddedNetworkRDD = jscontext
 					.parallelizePairs(createEmbeddedNetwork(BoundaryVertexRDD));
 //			embeddedNetworkRDD.collect().forEach(
@@ -344,27 +368,33 @@ public class GraphNetwork {
 		Yen yenAlgo = new Yen();
 
 		for (Integer mapIndex : boundaries.keySet()) {
+			for (int i = 0; i < boundaries.get(mapIndex).size(); i++) {
+				String vertexSrc = boundaries.get(mapIndex).get(i);
 
-			if (mapIndex < partSize) {
-				for (int i = 0; i < boundaries.get(mapIndex).size(); i++) {
-					String sourceVertex = boundaries.get(mapIndex).get(i);
+				for (int j = mapIndex + 1; j < partSize; j++) {
+					for (int k = 0; k < boundaries.get(j).size(); k++) {
+						String vertexDest = boundaries.get(j).get(k);
+						List<Path> pathList = new LinkedList<Path>();
+						pathList = yenAlgo.ksp(yenG, vertexSrc, vertexDest, 1);
+						SPList.add(pathList);
+						// 09System.out.println(vertexSrc + " -> " + vertexDest);
 
-					if ((mapIndex + 1) < boundaries.size()) {
-						for (int j = 0; j < boundaries.get(mapIndex + 1).size(); j++) {
-							String destinationVertex = boundaries.get(mapIndex + 1).get(j);
-							List<Path> pathList = new LinkedList<Path>();
-							pathList = yenAlgo.ksp(yenG, sourceVertex, destinationVertex, 1);
-							SPList.add(pathList);
-							// System.out.println(sourceVertex + " -> " + destinationVertex);
-						}
 					}
-
 				}
 
 			}
-
 		}
+
 		return SPList;
+	}
+
+	public static List<Path> getSPFbetweenTwoNodes(YenGraph yg, String src, String dest, int partSize) {
+		List<Path> spf = new ArrayList<Path>();
+		Yen yalg = new Yen();
+
+		spf = yalg.ksp(yg, src, dest, partSize);
+
+		return spf;
 	}
 
 	public static LinkedList<Integer> unifyAllShortestPaths(ArrayList<List<Path>> spfList) {
@@ -377,15 +407,33 @@ public class GraphNetwork {
 					if (!shortestpathsUnion.contains(vertex)) {
 
 						shortestpathsUnion.add(vertex);
-						System.out.println("added " + vertex);
+						// System.out.println("added " + vertex);
 					}
 
 				}
-				System.out.println(" ");
+				// System.out.println(" ");
 			}
 		}
 
 		return shortestpathsUnion;
+	}
+
+	public static CoreGraph readSPFreturnGraph(ArrayList<List<Path>> shortestPathList) {
+
+		CoreGraph embeddedGraph = new CoreGraph();
+
+		for (List<Path> path : shortestPathList) {
+			for (Path p : path) {
+				int srcVertex = Integer.parseInt(p.getEdges().getFirst().getFromNode());
+				int destinationVertex = Integer.parseInt(p.getEdges().getLast().getToNode());
+				double edgeWeight = Double.valueOf(p.getTotalCost());
+				embeddedGraph.addEdge(srcVertex, destinationVertex, edgeWeight);
+
+			}
+		}
+
+		return embeddedGraph;
+
 	}
 
 	/**
