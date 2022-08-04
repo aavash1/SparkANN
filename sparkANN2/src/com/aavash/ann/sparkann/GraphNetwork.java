@@ -177,39 +177,33 @@ public class GraphNetwork {
 			}
 
 			/**
-			 * Create a JavaPair Rdd of the adjacencyList
+			 * Create a partition JavaPairRDD of the adjacencyList
 			 */
 			int CustomPartitionSize = 3;
-			JavaPairRDD<Object, Map<Object, Map<Object, Double>>> adjacencyListWithPartitionIndexRDD = jscontext
+			JavaPairRDD<Object, Map<Object, Map<Object, Double>>> custAdjListWithPartIndexRDD = jscontext
 					.parallelizePairs(adjacencyListWithPartitionIndex)
 					.partitionBy(new CustomPartitioner(CustomPartitionSize));
+			System.out.println("Partitions: " + custAdjListWithPartIndexRDD.partitions().get(0));
 
-			/**
-			 * Partition the RDD using the key of the JavaPairRDD
-			 */
-			JavaPairRDD<Object, Map<Object, Map<Object, Double>>> customPartitionedadjacencyListWithPartitionIndexRDD = adjacencyListWithPartitionIndexRDD
-					.partitionBy(new CustomPartitioner(CustomPartitionSize));
-			System.out.println("Partitions: " + customPartitionedadjacencyListWithPartitionIndexRDD.partitions());
-
-			JavaRDD<Integer> result = customPartitionedadjacencyListWithPartitionIndexRDD
-					.mapPartitionsWithIndex((idx, i) -> {
-						List<Integer> partitionCheckList = new ArrayList<>();
-						while (i.hasNext()) {
-							partitionCheckList.add(Integer.parseInt(String.valueOf(i.next()._1)));
-						}
-						return partitionCheckList.iterator();
-					}, true);
+			JavaRDD<Integer> result = custAdjListWithPartIndexRDD.mapPartitionsWithIndex((idx, i) -> {
+				List<Integer> partitionCheckList = new ArrayList<>();
+				while (i.hasNext()) {
+					partitionCheckList.add(Integer.parseInt(String.valueOf(i.next()._1)));
+				}
+				return partitionCheckList.iterator();
+			}, true);
 
 			System.out.println();
+
+			/**
+			 * Selecting the Boundaries after graph partitions
+			 * 
+			 */
 
 			Map<Object, Object> BoundaryNodes = new HashMap<>();
 			LinkedList<String> BoundaryNodeList = new LinkedList<>();
 			ArrayList<cEdge> BoundaryEdge = new ArrayList<>();
 
-			// This map holds partitionIndex as keys and ArrayList of Border vertices as
-			// values
-			Map<Object, ArrayList<Object>> Boundaries = new HashMap<>();
-			LinkedHashMap<Integer, ArrayList<String>> strBoundaries = new LinkedHashMap<>();
 			for (cEdge selectedEdge : cGraph.getEdgesWithInfo()) {
 				int SrcId = selectedEdge.getStartNodeId();
 				int DestId = selectedEdge.getEndNodeId();
@@ -225,6 +219,14 @@ public class GraphNetwork {
 				}
 
 			}
+
+			/**
+			 * This map holds partitionIndex as keys and ArrayList of Border vertices as
+			 * values
+			 **/
+
+			Map<Object, ArrayList<Object>> Boundaries = new HashMap<>();
+			LinkedHashMap<Integer, ArrayList<String>> strBoundaries = new LinkedHashMap<>();
 
 			for (Object BoundaryVertex : BoundaryNodes.keySet()) {
 
@@ -260,23 +262,25 @@ public class GraphNetwork {
 			JavaRDD<String> BoundaryVertexRDD = jscontext.parallelize(BoundaryNodeList);
 			JavaRDD<cEdge> BoundaryEdgeRDD = jscontext.parallelize(BoundaryEdge);
 
-//			BoundaryVertexRDD.collect().forEach(x -> System.out.print(x + " "));
-//			System.out.println(" ");
+			BoundaryVertexRDD.collect().forEach(x -> System.out.print(x + " "));
+			System.out.println(" ");
 			// BoundaryEdgeRDD.collect().forEach(x -> System.out.print(x.getEdgeId() + "
 			// "));
 			// System.out.println(" ");
 
-			List<Tuple2<Integer, ArrayList<RoadObject>>> roadObjectList = new ArrayList<>(
+			List<Tuple2<Object, ArrayList<RoadObject>>> roadObjectList = new ArrayList<>(
 					cGraph.getObjectsOnEdges().size());
 
 			for (Integer edgeId : cGraph.getObjectsOnEdges().keySet()) {
 				roadObjectList.add(
 
-						new Tuple2<Integer, ArrayList<RoadObject>>((Integer) edgeId,
+						new Tuple2<Object, ArrayList<RoadObject>>((Integer) edgeId,
 								cGraph.getObjectsOnEdges().get(edgeId)));
 			}
-			JavaPairRDD<Integer, ArrayList<RoadObject>> roadObjectListRDD = jscontext.parallelizePairs(roadObjectList);
-			// roadObjectListRDD.collect().forEach(System.out::println);
+			JavaPairRDD<Object, ArrayList<RoadObject>> roadObjectListRDD = jscontext.parallelizePairs(roadObjectList);
+			 roadObjectListRDD.collect().forEach(System.out::println);
+
+			
 
 			/**
 			 * Using the Boundaries hashmap <PartitionIndex, ArrayList<BorderVertices> to
@@ -284,6 +288,7 @@ public class GraphNetwork {
 			 * the vertex that are in shortest path list in a separate ArrayList
 			 */
 			ArrayList<List<Path>> shortestPathList = runSPF(yGraph, strBoundaries, CustomPartitionSize);
+			ArrayList<List<Path>> shortestPathList1 = runSP(yGraph, BoundaryNodeList, CustomPartitionSize);
 //			System.out.println("Verify the shortest-paths");
 //			for (List<Path> p1 : shortestPathList) {
 //				System.out.println(p1 + " ");
@@ -303,21 +308,21 @@ public class GraphNetwork {
 			 * a array Tuple2<Object,Map<Object,Double>> VirtualGraph
 			 **/
 
-//			for (List<Path> p1 : shortestPathList) {
-//				for (Path p : p1) {
-//					// System.out.println("GetNodes: " + p.getNodes() + " ");
-//					System.out.println("From: " + p.getEdges().getFirst().getFromNode() + " To: "
-//							+ p.getEdges().getLast().getToNode() + " " + " total Cost: " + p.getTotalCost() + " ");
-//					System.out.println(" ");
-//
-//				}
-//
-//			}
+			for (List<Path> p1 : shortestPathList1) {
+				for (Path p : p1) {
+					// System.out.println("GetNodes: " + p.getNodes() + " ");
+					System.out.println(p.getEdges().getFirst().getFromNode() + " To: "
+							+ p.getEdges().getLast().getToNode() + " " + " Costt: " + p.getTotalCost() + " ");
 
-			CoreGraph spGraph = readSPFreturnGraph(shortestPathList);
-			System.out.println(" ");
+				}
+				// System.out.println(" ");
+
+			}
+
+			// CoreGraph spGraph = readSPFreturnGraph(shortestPathList);
+			// System.out.println(" ");
 			// cGraph.printEdgesInfo();
-			spGraph.printEdgesInfo();
+			// spGraph.printEdgesInfo();
 
 			JavaPairRDD<Object, Map<Object, Double>> embeddedNetworkRDD = jscontext
 					.parallelizePairs(createEmbeddedNetwork(BoundaryVertexRDD));
@@ -388,6 +393,24 @@ public class GraphNetwork {
 		return SPList;
 	}
 
+	public static ArrayList<List<Path>> runSP(YenGraph yenG, LinkedList<String> boundaryVertices, int partSize) {
+		ArrayList<List<Path>> SPList = new ArrayList<List<Path>>();
+		Yen yenAlgo = new Yen();
+
+		for (int i = 0; i < boundaryVertices.size(); i++) {
+			String srcVertex = boundaryVertices.get(i);
+			for (int j = i + 1; j < boundaryVertices.size(); j++) {
+				String destVertex = boundaryVertices.get(j);
+				List<Path> pathList = new LinkedList<Path>();
+				pathList = yenAlgo.ksp(yenG, srcVertex, destVertex, 1);
+				SPList.add(pathList);
+				// System.out.println(srcVertex + " , " + destVertex);
+			}
+		}
+		return SPList;
+
+	}
+
 	public static List<Path> getSPFbetweenTwoNodes(YenGraph yg, String src, String dest, int partSize) {
 		List<Path> spf = new ArrayList<Path>();
 		Yen yalg = new Yen();
@@ -434,6 +457,12 @@ public class GraphNetwork {
 
 		return embeddedGraph;
 
+	}
+
+	public static Tuple2<Integer, Integer> getNearestDataObject() {
+		Tuple2<Integer, Integer> NNs = null;
+
+		return NNs;
 	}
 
 	/**
