@@ -3,8 +3,9 @@ package com.aavash.ann.sparkann;
 import java.io.IOException;
 
 import java.util.ArrayList;
-
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -14,12 +15,14 @@ import java.util.Vector;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.apache.spark.Partitioner;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.Function;
-
+import org.apache.spark.api.java.function.VoidFunction;
+import org.apache.spark.api.java.function.VoidFunction2;
 import org.apache.spark.graphx.Edge;
 import org.apache.spark.graphx.Graph;
 import org.apache.spark.graphx.PartitionStrategy;
@@ -44,6 +47,7 @@ import edu.ufl.cise.bsmock.graph.*;
 import edu.ufl.cise.bsmock.graph.ksp.Yen;
 import edu.ufl.cise.bsmock.graph.util.Path;
 
+import com.aavash.ann.sparkann.algorithm.NearestNeighbor;
 import com.aavash.ann.sparkann.graph.*;
 
 public class GraphNetwork {
@@ -97,13 +101,15 @@ public class GraphNetwork {
 		/**
 		 * Load Spark Necessary Items
 		 */
-		// Logger.getLogger("org.apache").setLevel(Level.WARN);
+		Logger.getLogger("org.apache").setLevel(Level.WARN);
 
 		/**
 		 * Actual Spark thing opens here
 		 */
 
-		SparkConf config = new SparkConf().setMaster("local[*]").setAppName("Final Graph");
+		SparkConf config = new SparkConf().setMaster("local[*]").setAppName("Final Graph")
+				.set("spark.history.fs.logDirectory", "file:///D:/spark-logs")
+				.set("spark.eventLog.dir", "file:///D:/spark-logs").set("spark.eventLog.enabled", "true");
 
 		try (JavaSparkContext jscontext = new JavaSparkContext(config)) {
 
@@ -200,24 +206,85 @@ public class GraphNetwork {
 
 			int CustomPartitionSize = 3;
 			JavaPairRDD<Object, Map<Object, Map<Object, ArrayList<RoadObject>>>> roadObjectOnGraphRDD = jscontext
-					.parallelizePairs(graphWithRoadObject).partitionBy(new CustomPartitioner(CustomPartitionSize));
+					.parallelizePairs(graphWithRoadObject);
+
+			JavaPairRDD<Object, Iterable<Map<Object, Map<Object, ArrayList<RoadObject>>>>> groupedObjectOnRoadRDD = roadObjectOnGraphRDD
+					.groupByKey(new CustomPartitioner(CustomPartitionSize));
+
+			List<Tuple2<Object, Object>> NNList = new ArrayList<>();
+			roadObjectOnGraphRDD
+					.foreach(new VoidFunction<Tuple2<Object, Map<Object, Map<Object, ArrayList<RoadObject>>>>>() {
+
+						/**
+						 * 
+						 */
+						private static final long serialVersionUID = 1L;
+
+						@Override
+						public void call(Tuple2<Object, Map<Object, Map<Object, ArrayList<RoadObject>>>> eachTuple)
+								throws Exception {
+							// TODO Auto-generated method stub
+							CoreGraph coGraph = new CoreGraph();
+							int edgeCounter = 0;
+							int objGlobalcounter = 0;
+							NearestNeighbor nn = new NearestNeighbor();
+
+							Integer partitionIndex, VertexId, adjacentEdgeId;
+
+							System.out.println(eachTuple._1.toString());
+							System.out.println(eachTuple);
+
+							try {
+
+								if (true) {
+									for (Integer edgeId : coGraph.getObjectsOnEdges().keySet()) {
+										edgeCounter++;
+
+										int objCounter = 0;
+										for (RoadObject trueObj : coGraph.getTrueObjectsOnEdgeSortedByDist(edgeId)) {
+											objCounter++;
+											objGlobalcounter++;
+
+											int nearestFalseObjId = nn.getNearestFalseObjectIdToGivenObjOnMap(coGraph,
+													trueObj.getObjectId());// .getNearestFalseObjectIdToGivenObjOnMap(graph,
+																			// trueObj.getObjectId());
+
+											NNList.add(new Tuple2<Object, Object>(trueObj.getObjectId(),
+													nearestFalseObjId));
+											System.out.println("calcualted");
+										}
+									}
+
+								}
+
+							} catch (Exception e) {
+								System.out.println("Exception error: " + e);
+
+							}
+
+						}
+					});
+
+			System.out.println(NNList);
 
 			// roadObjectOnGraphRDD.foreach(i -> System.out.println(i));
-
-			roadObjectOnGraphRDD.foreachPartition(i -> {
-
-				for (Object key : roadObjectOnGraphRDD.collect()) {
-					if (key.equals(0)) {
-						jscontext.setLocalProperty("spark.scheduler.pool", "0");
-						
-					} else if (key.equals(1)) {
-						jscontext.setLocalProperty("spark.scheduler.pool", "1");
-					} else {
-						jscontext.setLocalProperty("spark.scheduler.pool", "2");
-					}
-				}
-
-			});
+//
+//			roadObjectOnGraphRDD.foreachPartition(eachTups -> {
+//
+//				for (Object key : roadObjectOnGraphRDD.collect()) {
+//					if (key.equals(0)) {
+//						jscontext.setLocalProperty("spark.scheduler.pool", "0");
+//
+//					} else if (key.equals(1)) {
+//						jscontext.setLocalProperty("spark.scheduler.pool", "1");
+//
+//					} else {
+//						jscontext.setLocalProperty("spark.scheduler.pool", "2");
+//
+//					}
+//				}
+//
+//			});
 
 //			EvaluateANNQuery en = new EvaluateANNQuery();
 //			Tuple2<Object, Object> t1 = en.call(cGraph, graphWithRoadObject);
