@@ -212,16 +212,12 @@ public class GraphNetwork {
 					.groupByKey(new CustomPartitioner(CustomPartitionSize));
 
 			List<Tuple2<Object, Object>> NNList = new ArrayList<>();
-			roadObjectOnGraphRDD
-					.foreach(new VoidFunction<Tuple2<Object, Map<Object, Map<Object, ArrayList<RoadObject>>>>>() {
-
-						/**
-						 * 
-						 */
-						private static final long serialVersionUID = 1L;
+			groupedObjectOnRoadRDD.foreach(
+					new VoidFunction<Tuple2<Object, Iterable<Map<Object, Map<Object, ArrayList<RoadObject>>>>>>() {
 
 						@Override
-						public void call(Tuple2<Object, Map<Object, Map<Object, ArrayList<RoadObject>>>> eachTuple)
+						public void call(
+								Tuple2<Object, Iterable<Map<Object, Map<Object, ArrayList<RoadObject>>>>> eachTuple)
 								throws Exception {
 							// TODO Auto-generated method stub
 							CoreGraph coGraph = new CoreGraph();
@@ -231,8 +227,9 @@ public class GraphNetwork {
 
 							Integer partitionIndex, VertexId, adjacentEdgeId;
 
-							System.out.println(eachTuple._1.toString());
-							System.out.println(eachTuple);
+							// System.out.println("eachTuple._1: " + eachTuple._1.toString());
+							System.out.println("eachTuple._1: " + eachTuple._1.toString());
+							// System.out.println("eachTuple._2: " + eachTuple._2().toString());
 
 							try {
 
