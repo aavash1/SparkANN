@@ -205,64 +205,11 @@ public class GraphNetwork {
 			 */
 
 			int CustomPartitionSize = 3;
-			JavaPairRDD<Object, Map<Object, Map<Object, ArrayList<RoadObject>>>> roadObjectOnGraphRDD = jscontext
-					.parallelizePairs(graphWithRoadObject);
-
-			JavaPairRDD<Object, Iterable<Map<Object, Map<Object, ArrayList<RoadObject>>>>> groupedObjectOnRoadRDD = roadObjectOnGraphRDD
-					.groupByKey(new CustomPartitioner(CustomPartitionSize));
-
-			List<Tuple2<Object, Object>> NNList = new ArrayList<>();
-			groupedObjectOnRoadRDD.foreach(
-					new VoidFunction<Tuple2<Object, Iterable<Map<Object, Map<Object, ArrayList<RoadObject>>>>>>() {
-
-						@Override
-						public void call(
-								Tuple2<Object, Iterable<Map<Object, Map<Object, ArrayList<RoadObject>>>>> eachTuple)
-								throws Exception {
-							// TODO Auto-generated method stub
-							CoreGraph coGraph = new CoreGraph();
-							int edgeCounter = 0;
-							int objGlobalcounter = 0;
-							NearestNeighbor nn = new NearestNeighbor();
-
-							Integer partitionIndex, VertexId, adjacentEdgeId;
-
-							// System.out.println("eachTuple._1: " + eachTuple._1.toString());
-							System.out.println("eachTuple._1: " + eachTuple._1.toString());
-							// System.out.println("eachTuple._2: " + eachTuple._2().toString());
-
-							try {
-
-								if (true) {
-									for (Integer edgeId : coGraph.getObjectsOnEdges().keySet()) {
-										edgeCounter++;
-
-										int objCounter = 0;
-										for (RoadObject trueObj : coGraph.getTrueObjectsOnEdgeSortedByDist(edgeId)) {
-											objCounter++;
-											objGlobalcounter++;
-
-											int nearestFalseObjId = nn.getNearestFalseObjectIdToGivenObjOnMap(coGraph,
-													trueObj.getObjectId());// .getNearestFalseObjectIdToGivenObjOnMap(graph,
-																			// trueObj.getObjectId());
-
-											NNList.add(new Tuple2<Object, Object>(trueObj.getObjectId(),
-													nearestFalseObjId));
-											System.out.println("calcualted");
-										}
-									}
-
-								}
-
-							} catch (Exception e) {
-								System.out.println("Exception error: " + e);
-
-							}
-
-						}
-					});
-
-			System.out.println(NNList);
+//			JavaPairRDD<Object, Map<Object, Map<Object, ArrayList<RoadObject>>>> roadObjectOnGraphRDD = jscontext
+//					.parallelizePairs(graphWithRoadObject);
+//
+//			JavaPairRDD<Object, Iterable<Map<Object, Map<Object, ArrayList<RoadObject>>>>> groupedObjectOnRoadRDD = roadObjectOnGraphRDD
+//					.groupByKey(new CustomPartitioner(CustomPartitionSize));
 
 			// roadObjectOnGraphRDD.foreach(i -> System.out.println(i));
 //
@@ -293,14 +240,14 @@ public class GraphNetwork {
 //					.parallelizePairs(adjacencyListWithPartitionIndex)
 //					.partitionBy(new CustomPartitioner(CustomPartitionSize));
 //			System.out.println("Partitions: " + custAdjListWithPartIndexRDD.partitions().get(0));
-
-			JavaRDD<Integer> result = roadObjectOnGraphRDD.mapPartitionsWithIndex((idx, i) -> {
-				List<Integer> partitionCheckList = new ArrayList<>();
-				while (i.hasNext()) {
-					partitionCheckList.add(Integer.parseInt(String.valueOf(i.next()._1)));
-				}
-				return partitionCheckList.iterator();
-			}, true);
+//
+//			JavaRDD<Integer> result = roadObjectOnGraphRDD.mapPartitionsWithIndex((idx, i) -> {
+//				List<Integer> partitionCheckList = new ArrayList<>();
+//				while (i.hasNext()) {
+//					partitionCheckList.add(Integer.parseInt(String.valueOf(i.next()._1)));
+//				}
+//				return partitionCheckList.iterator();
+//			}, true);
 
 			// System.out.println(result.collect());
 
@@ -312,6 +259,7 @@ public class GraphNetwork {
 			Map<Object, Object> BoundaryNodes = new HashMap<>();
 			LinkedList<String> BoundaryNodeList = new LinkedList<>();
 			ArrayList<cEdge> BoundaryEdge = new ArrayList<>();
+			ArrayList<Object> BoundaryEdgeId = new ArrayList<>();
 
 			for (cEdge selectedEdge : cGraph.getEdgesWithInfo()) {
 				int SrcId = selectedEdge.getStartNodeId();
@@ -324,6 +272,7 @@ public class GraphNetwork {
 					BoundaryNodes.put(SrcId, vertexIdPartitionIndex.get(SrcId));
 					BoundaryNodes.put(DestId, vertexIdPartitionIndex.get(DestId));
 					BoundaryEdge.add(selectedEdge);
+					BoundaryEdgeId.add(selectedEdge.getEdgeId());
 
 				}
 
@@ -371,23 +320,38 @@ public class GraphNetwork {
 			JavaRDD<String> BoundaryVertexRDD = jscontext.parallelize(BoundaryNodeList);
 			JavaRDD<cEdge> BoundaryEdgeRDD = jscontext.parallelize(BoundaryEdge);
 
-			// BoundaryVertexRDD.collect().forEach(x -> System.out.print(x + " "));
+			BoundaryVertexRDD.collect().forEach(x -> System.out.print(x + " "));
 			System.out.println(" ");
-			// BoundaryEdgeRDD.collect().forEach(x -> System.out.print(x.getEdgeId() + "
-			// "));
+			BoundaryEdgeRDD.collect().forEach(x -> System.out.print(x.getEdgeId() + " "));
 			// System.out.println(" ");
 
-			List<Tuple2<Object, ArrayList<RoadObject>>> roadObjectList = new ArrayList<>(
-					cGraph.getObjectsOnEdges().size());
+			/**
+			 * |Partition_Index|Source_vertex|Destination_vertex|Edge_Length|ArrayList<Road_Object>|
+			 */
+			List<Tuple2<Object, Map<Object, Map<Object, Tuple2<Double, ArrayList<RoadObject>>>>>> adjacentVerticesForSubgraphs = new ArrayList<>(
+					graphPartitionIndex.size());
 
-			for (Integer edgeId : cGraph.getObjectsOnEdges().keySet()) {
-				roadObjectList.add(
+			for (int i = 0; i < graphPartitionIndex.size(); i++) {
 
-						new Tuple2<Object, ArrayList<RoadObject>>((Integer) edgeId,
-								cGraph.getObjectsOnEdges().get(edgeId)));
+				Map<Object, Map<Object, Tuple2<Double, ArrayList<RoadObject>>>> adjacentVertices = new HashMap<>();
+				Map<Object, Tuple2<Double, ArrayList<RoadObject>>> adjacentVertexWithObject = new LinkedHashMap<Object, Tuple2<Double, ArrayList<RoadObject>>>();
+				for (Integer dstIndex : cGraph.getAdjancencyMap().get(keys[i]).keySet()) {
+
+					int adjEdgeId = cGraph.getEdgeId(keys[i], dstIndex);
+
+					if (!BoundaryEdgeId.contains(cGraph.getEdgeId(keys[i], dstIndex))) {
+						adjacentVertexWithObject.put(Long.valueOf(dstIndex), new Tuple2<Double, ArrayList<RoadObject>>(
+								cGraph.getEdgeDistance(keys[i], dstIndex), cGraph.getObjectsOnEdges().get(adjEdgeId)));
+					}
+
+				}
+
+				adjacentVertices.put(keys[i], adjacentVertexWithObject);
+				adjacentVerticesForSubgraphs
+						.add(new Tuple2<Object, Map<Object, Map<Object, Tuple2<Double, ArrayList<RoadObject>>>>>(
+								Long.valueOf(graphPartitionIndex.get(i)), adjacentVertices));
+
 			}
-			JavaPairRDD<Object, ArrayList<RoadObject>> roadObjectListRDD = jscontext.parallelizePairs(roadObjectList);
-			// roadObjectListRDD.collect().forEach(System.out::println);
 
 			/**
 			 * Using the Boundaries hashmap <PartitionIndex, ArrayList<BorderVertices> to
@@ -396,16 +360,13 @@ public class GraphNetwork {
 			 */
 			ArrayList<List<Path>> shortestPathList = runSPF(yGraph, strBoundaries, CustomPartitionSize);
 			ArrayList<List<Path>> shortestPathList1 = runSP(yGraph, BoundaryNodeList, CustomPartitionSize);
-//			System.out.println("Verify the shortest-paths");
-//			for (List<Path> p1 : shortestPathList) {
-//				System.out.println(p1 + " ");
-//			}
+			System.out.println("Verify the shortest-paths");
+			for (List<Path> p1 : shortestPathList) {
+				System.out.println(p1 + " ");
+			}
 
 			List<Integer> shortestpathsUnion = unifyAllShortestPaths(shortestPathList);
 			System.out.println();
-//			System.out.println(shortestpathsUnion);
-
-//			List<Path> spflist = getSPFbetweenTwoNodes(yGraph, "38", "23", 2);
 
 			/**
 			 * Creating Embedded Network Graph: 1) Initially create a Virtual Vertex 2)
@@ -415,43 +376,15 @@ public class GraphNetwork {
 			 * a array Tuple2<Object,Map<Object,Double>> VirtualGraph
 			 **/
 
-//			for (List<Path> p1 : shortestPathList1) {
-//				for (Path p : p1) {
-//					// System.out.println("GetNodes: " + p.getNodes() + " ");
-//					System.out.println(p.getEdges().getFirst().getFromNode() + " To: "
-//							+ p.getEdges().getLast().getToNode() + " " + " Costt: " + p.getTotalCost() + " ");
-//
-//				}
-//				// System.out.println(" ");
-//
-//			}
-
-			// CoreGraph spGraph = readSPFreturnGraph(shortestPathList);
-			// System.out.println(" ");
-			// cGraph.printEdgesInfo();
-			// spGraph.printEdgesInfo();
-
-			JavaPairRDD<Object, Map<Object, Double>> embeddedNetworkRDD = jscontext
-					.parallelizePairs(createEmbeddedNetwork(BoundaryVertexRDD));
-//			embeddedNetworkRDD.collect().forEach(
-//					x -> System.out.print("Map: " + x + "\n" + " key: " + x._1 + " value: " + x._2 + "\n" + "\n"));
-
-			// adjacencyListWithPartitionIndexRDD.collect().forEach(x -> System.out.print(x
-			// + "\n"));
-
 			/**
 			 * Once the graph is created: 1) Combine the GraphRDD with RoadObjectPairRDD,
 			 * and BoundaryEdgeRDD. 2) Apply CustomPartitioner function on the newly created
 			 * RDD 3)
 			 */
 
-//			ANNNaive annNaive = new ANNNaive();
-//			long startTimeNaive = System.nanoTime();
-//			annNaive.compute(cGraph, true);
-//			long timeElapsed = System.nanoTime() - startTimeNaive;
-//			double computationTime = (double) timeElapsed / 1000000000.0;
-//
-//			System.out.print("The time to compute ANN: " + computationTime);
+			JavaPairRDD<Object, Iterable<Map<Object, Map<Object, Tuple2<Double, ArrayList<RoadObject>>>>>> adjVertForSubgraphsRDD = jscontext
+					.parallelizePairs(adjacentVerticesForSubgraphs)
+					.groupByKey(new CustomPartitioner(CustomPartitionSize));
 
 			jscontext.close();
 

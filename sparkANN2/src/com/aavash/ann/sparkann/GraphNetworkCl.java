@@ -113,7 +113,7 @@ public class GraphNetworkCl {
 
 		}
 
-		System.out.println(graphWithRoadObject);
+		// System.out.println(graphWithRoadObject);
 
 		/**
 		 * Selecting the Boundaries after graph partitions
@@ -123,6 +123,7 @@ public class GraphNetworkCl {
 		Map<Object, Object> BoundaryNodes = new HashMap<>();
 		LinkedList<String> BoundaryNodeList = new LinkedList<>();
 		ArrayList<cEdge> BoundaryEdge = new ArrayList<>();
+		ArrayList<Object> BoundaryEdgeId = new ArrayList<>();
 
 		for (cEdge selectedEdge : cGraph.getEdgesWithInfo()) {
 			int SrcId = selectedEdge.getStartNodeId();
@@ -135,10 +136,12 @@ public class GraphNetworkCl {
 				BoundaryNodes.put(SrcId, vertexIdPartitionIndex.get(SrcId));
 				BoundaryNodes.put(DestId, vertexIdPartitionIndex.get(DestId));
 				BoundaryEdge.add(selectedEdge);
+				BoundaryEdgeId.add(selectedEdge.getEdgeId());
 
 			}
 
 		}
+		System.out.println(BoundaryEdge);
 
 		/**
 		 * This map holds partitionIndex as keys and ArrayList of Border vertices as
@@ -175,6 +178,38 @@ public class GraphNetworkCl {
 			}
 		}
 
+		System.out.println(BoundaryNodeList);
+
+		// |Partition_Index|Source_vertex|Destination_vertex|Edge_Length|ArrayList<Road_Object>|
+		List<Tuple2<Object, Map<Object, Map<Object, Tuple2<Double, ArrayList<RoadObject>>>>>> adjacentVerticesForSubgraphs = new ArrayList<>(
+				graphPartitionIndex.size());
+
+		for (int i = 0; i < graphPartitionIndex.size(); i++) {
+
+			Map<Object, Map<Object, Tuple2<Double, ArrayList<RoadObject>>>> adjacentVertices = new HashMap<>();
+			Map<Object, Tuple2<Double, ArrayList<RoadObject>>> adjacentVertexWithObject = new LinkedHashMap<Object, Tuple2<Double, ArrayList<RoadObject>>>();
+			for (Integer dstIndex : cGraph.getAdjancencyMap().get(keys[i]).keySet()) {
+
+				int adjEdgeId = cGraph.getEdgeId(keys[i], dstIndex);
+
+				if (!BoundaryEdgeId.contains(cGraph.getEdgeId(keys[i], dstIndex))) {
+					adjacentVertexWithObject.put(Long.valueOf(dstIndex), new Tuple2<Double, ArrayList<RoadObject>>(
+							cGraph.getEdgeDistance(keys[i], dstIndex), cGraph.getObjectsOnEdges().get(adjEdgeId)));
+				}
+
+			}
+
+			adjacentVertices.put(keys[i], adjacentVertexWithObject);
+			adjacentVerticesForSubgraphs
+					.add(new Tuple2<Object, Map<Object, Map<Object, Tuple2<Double, ArrayList<RoadObject>>>>>(
+							Long.valueOf(graphPartitionIndex.get(i)), adjacentVertices));
+
+		}
+
+		for (Object o : adjacentVerticesForSubgraphs) {
+			System.out.println(o);
+		}
+
 		List<Tuple2<Object, ArrayList<RoadObject>>> roadObjectList = new ArrayList<>(cGraph.getObjectsOnEdges().size());
 
 		for (Integer edgeId : cGraph.getObjectsOnEdges().keySet()) {
@@ -184,12 +219,12 @@ public class GraphNetworkCl {
 							cGraph.getObjectsOnEdges().get(edgeId)));
 		}
 
-		cGraph.printEdgesInfo();
-		System.out.println(roadObjectList);
+		// cGraph.printEdgesInfo();
+		// System.out.println(roadObjectList);
 
 		// System.out.println(BoundaryNodes);
 		// System.out.println(BoundaryEdge);
-		System.out.println(strBoundaries);
+		// System.out.println(strBoundaries);
 
 	}
 
