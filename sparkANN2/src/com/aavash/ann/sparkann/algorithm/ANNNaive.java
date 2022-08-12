@@ -29,8 +29,8 @@ public class ANNNaive {
 
 		if (queryObjectType) {
 			// Query object = True Object; Data Object = False Object
-			System.out.println("Query object = True Object (" + m_graph.getTotalNumberOfTrueObjects()
-					+ "); Data Object = False Object (" + m_graph.getTotalNumberOfFalseObjects() + ")");
+//			System.out.println("Query object = True Object (" + m_graph.getTotalNumberOfTrueObjects()
+//					+ "); Data Object = False Object (" + m_graph.getTotalNumberOfFalseObjects() + ")");
 
 			// Iterate through all objects on every edge
 			for (Integer edgeId : m_graph.getObjectsOnEdges().keySet()) {
