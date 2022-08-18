@@ -300,7 +300,7 @@ public class GraphNetworkDefault2 {
 			JavaPairRDD<Object, Iterable<Tuple4<Object, Object, Double, ArrayList<RoadObject>>>> toCreateSubgraphRDD = tupleForSubgraphsPairRDD
 					.groupByKey().partitionBy(new CustomPartitioner(CustomPartitionSize));
 
-			//toCreateSubgraphRDD.foreach(x -> System.out.println(x));
+			toCreateSubgraphRDD.foreach(x -> System.out.println(x));
 
 			toCreateSubgraphRDD.foreachPartition(
 					new VoidFunction<Iterator<Tuple2<Object, Iterable<Tuple4<Object, Object, Double, ArrayList<RoadObject>>>>>>() {
