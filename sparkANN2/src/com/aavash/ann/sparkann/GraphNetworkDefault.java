@@ -14,10 +14,11 @@ import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.api.java.function.Function2;
+
 import org.apache.spark.api.java.function.PairFlatMapFunction;
 import org.apache.spark.api.java.function.VoidFunction;
 
+import com.aavash.ann.sparkann.algorithm.ANNNaive;
 import com.aavash.ann.sparkann.graph.CustomPartitioner;
 import com.ann.sparkann.framework.CoreGraph;
 import com.ann.sparkann.framework.Node;
@@ -48,14 +49,19 @@ public class GraphNetworkDefault {
 		 * 1 Pass the path for loading the datasets 1.1 Dataset for graph containing
 		 * nodes and edges
 		 */
-		String nodeDatasetFile = "Dataset/TinygraphNodes.txt";
-		String edgeDataSetFile = "Dataset/TinygraphEdges.txt";
+		String nodeDatasetFile = "Dataset/PCManualGraphNodes.txt";
+		String edgeDataSetFile = "Dataset/PCManualGraphEdges.txt";
+
+		// TinyGraph
+		// String nodeDatasetFile = "Dataset/TinygraphNodes.txt";
+		// String edgeDataSetFile = "Dataset/TinygraphEdges.txt";
 
 		/**
 		 * 1.2 Dataset for METIS graph and Partition Output
 		 */
 		String metisInputGraph = "Metisgraph/ManualGraph.txt";
-		String metisPartitionOutputFile = "PartitionDataset/tg_part.txt";
+		String metisPartitionOutputFile = "PartitionDataset/PCmanualGr_part2.txt";
+		// String metisPartitionOutputFile = "PartitionDataset/tg_part.txt";
 
 		/**
 		 * Load Graph using CoreGraph Framework, YenGraph for calculating shortest paths
@@ -81,7 +87,8 @@ public class GraphNetworkDefault {
 		 */
 		// RandomObjectGenerator.generateUniformRandomObjectsOnMap(cGraph, 100, 500);
 
-		String PCManualObject = "Dataset/manualobject/ManualObjectOnTinyGraph.txt";
+		String PCManualObject = "Dataset/manualobject/ManualObjectsOnRoad.txt";
+		// String PCManualObject = "Dataset/manualobject/ManualObjectsOnTinyGraph.txt";
 		UtilsManagement.readRoadObjectTxtFile1(cGraph, PCManualObject);
 		// cGraph.printObjectsOnEdges();
 
@@ -104,7 +111,8 @@ public class GraphNetworkDefault {
 		}
 
 		// Depending upon the size of cluster, CustomPartitionSize can be changed
-		int CustomPartitionSize = 2;
+		int CustomPartitionSize = 3;
+//		int CustomPartitionSize = 2;
 
 		/**
 		 * Selecting the Boundaries after graph partitions
@@ -178,13 +186,8 @@ public class GraphNetworkDefault {
 		/**
 		 * |Partition_Index|Source_vertex|Destination_vertex|Edge_Length|ArrayList<Road_Object>|
 		 */
-		List<Tuple2<Object, Map<Object, Map<Object, Tuple2<Double, ArrayList<RoadObject>>>>>> adjacentVerticesForSubgraphs = new ArrayList<>(
-				graphPartitionIndex.size());
 
 		List<Tuple5<Object, Object, Object, Double, ArrayList<RoadObject>>> tuplesForSubgraphs = new ArrayList<>(
-				graphPartitionIndex.size());
-
-		List<Tuple2<Object, Tuple4<Object, Object, Double, ArrayList<RoadObject>>>> newTupleForSubgraphs = new ArrayList<>(
 				graphPartitionIndex.size());
 
 		for (int i = 0; i < graphPartitionIndex.size(); i++) {
@@ -201,40 +204,9 @@ public class GraphNetworkDefault {
 							partitionIndexKey[i], dstIndex, cGraph.getEdgeDistance(partitionIndexKey[i], dstIndex),
 							cGraph.getObjectsOnEdges().get(adjEdgeId));
 
-					newTupleForSubgraphs.add(new Tuple2<Object, Tuple4<Object, Object, Double, ArrayList<RoadObject>>>(
-							Long.valueOf(graphPartitionIndex.get(i)), nt));
-
 				}
 
 			}
-
-		}
-
-//		for (int i = 0; i < newTupleForSubgraphs.size(); i++) {
-//			System.out.println(tuplesForSubgraphs.get(i));
-//		}
-
-		for (int i = 0; i < graphPartitionIndex.size(); i++) {
-
-			Map<Object, Map<Object, Tuple2<Double, ArrayList<RoadObject>>>> adjacentVertices = new HashMap<>();
-			Map<Object, Tuple2<Double, ArrayList<RoadObject>>> adjacentVertexWithObject = new LinkedHashMap<Object, Tuple2<Double, ArrayList<RoadObject>>>();
-			for (Integer dstIndex : cGraph.getAdjancencyMap().get(partitionIndexKey[i]).keySet()) {
-
-				int adjEdgeId = cGraph.getEdgeId(partitionIndexKey[i], dstIndex);
-
-				if (!BoundaryEdgeId.contains(cGraph.getEdgeId(partitionIndexKey[i], dstIndex))) {
-					adjacentVertexWithObject.put(Long.valueOf(dstIndex),
-							new Tuple2<Double, ArrayList<RoadObject>>(
-									cGraph.getEdgeDistance(partitionIndexKey[i], dstIndex),
-									cGraph.getObjectsOnEdges().get(adjEdgeId)));
-				}
-
-			}
-
-			adjacentVertices.put(partitionIndexKey[i], adjacentVertexWithObject);
-			adjacentVerticesForSubgraphs
-					.add(new Tuple2<Object, Map<Object, Map<Object, Tuple2<Double, ArrayList<RoadObject>>>>>(
-							Long.valueOf(graphPartitionIndex.get(i)), adjacentVertices));
 
 		}
 
@@ -286,30 +258,10 @@ public class GraphNetworkDefault {
 			 * RDD 3)
 			 */
 
-			// <Partition_index, edge_id, edge_distance, List<RoadObject>>
-
-			// <Partition_Index_Key, Map<Source_vertex, Map<Destination Vertex,
-			// Tuple2<Edge_Length, ArrayList of Random Objects>>
-			JavaPairRDD<Object, Iterable<Map<Object, Map<Object, Tuple2<Double, ArrayList<RoadObject>>>>>> adjVertForSubgraphsRDD = jscontext
-					.parallelizePairs(adjacentVerticesForSubgraphs).groupByKey()
-					.partitionBy(new CustomPartitioner(CustomPartitionSize));
-
-			// adjVertForSubgraphsRDD.foreach(x -> System.out.println(x + "\n"));
-
-			// adjacentVerticesForSubgraphs.forEach(x -> System.out.println(x));
-
-			// applying foreachPartition action on JavaPairRDD
-
-			// adjVertForSubgraphsRDD.collectPartitions(partitionIndexKey)
-
-			JavaPairRDD<Object, Iterable<Tuple2<Object, Tuple4<Object, Object, Double, ArrayList<RoadObject>>>>> parRDD = jscontext
-					.parallelize(newTupleForSubgraphs).groupBy(x -> x._1())
-					.partitionBy(new CustomPartitioner(CustomPartitionSize));
-
-			JavaRDD<Tuple5<Object, Object, Object, Double, ArrayList<RoadObject>>> newRDD = jscontext
+			JavaRDD<Tuple5<Object, Object, Object, Double, ArrayList<RoadObject>>> tupleForSubgraphsRDD = jscontext
 					.parallelize(tuplesForSubgraphs);
 
-			JavaPairRDD<Object, Tuple4<Object, Object, Double, ArrayList<RoadObject>>> pairRDD = newRDD
+			JavaPairRDD<Object, Tuple4<Object, Object, Double, ArrayList<RoadObject>>> tupleForSubgraphsPairRDD = tupleForSubgraphsRDD
 					.mapPartitionsToPair(
 							new PairFlatMapFunction<Iterator<Tuple5<Object, Object, Object, Double, ArrayList<RoadObject>>>, Object, Tuple4<Object, Object, Double, ArrayList<RoadObject>>>() {
 
@@ -345,10 +297,10 @@ public class GraphNetworkDefault {
 
 							});
 
-			JavaPairRDD<Object, Iterable<Tuple4<Object, Object, Double, ArrayList<RoadObject>>>> toCreateSubgraphRDD = pairRDD
+			JavaPairRDD<Object, Iterable<Tuple4<Object, Object, Double, ArrayList<RoadObject>>>> toCreateSubgraphRDD = tupleForSubgraphsPairRDD
 					.groupByKey().partitionBy(new CustomPartitioner(CustomPartitionSize));
 
-			// toCreateSubgraphRDD.foreach(x -> System.out.println(x));
+			toCreateSubgraphRDD.foreach(x -> System.out.println(x));
 
 			toCreateSubgraphRDD.foreachPartition(
 					new VoidFunction<Iterator<Tuple2<Object, Iterable<Tuple4<Object, Object, Double, ArrayList<RoadObject>>>>>>() {
@@ -357,8 +309,8 @@ public class GraphNetworkDefault {
 						 * 
 						 */
 						private static final long serialVersionUID = 1L;
-						CoreGraph subgraph0 = new CoreGraph();
-						CoreGraph subGraph1 = new CoreGraph();
+						List<Map<Integer, Integer>> NNListMap = new ArrayList<>();
+						// CoreGraph subGraph1 = new CoreGraph();
 
 						@Override
 						public void call(
@@ -375,281 +327,84 @@ public class GraphNetworkDefault {
 							// TODO Auto-generated method stub
 
 							while (eachTuple.hasNext()) {
+								CoreGraph subGraph0 = new CoreGraph();
 								Tuple2<Object, Iterable<Tuple4<Object, Object, Double, ArrayList<RoadObject>>>> theTup = eachTuple
 										.next();
-								if ((Integer.parseInt(String.valueOf(theTup._1()))) == 1) {
-									ArrayList<Integer> addedObjects = new ArrayList<Integer>();
-									Iterator<Tuple4<Object, Object, Double, ArrayList<RoadObject>>> iter = theTup._2()
-											.iterator();
-									while (iter.hasNext()) {
-										Tuple4<Object, Object, Double, ArrayList<RoadObject>> listInfo = iter.next();
-										sourceVertex = Integer.parseInt(String.valueOf(listInfo._1()));
-										destVertex = Integer.parseInt(String.valueOf(listInfo._2()));
-										edgeLength = listInfo._3();
-										ArrayList<RoadObject> roadObjList = listInfo._4();
 
-										subgraph0.addEdge(sourceVertex, destVertex, edgeLength);
-										int currentEdgeId = subgraph0.getEdgeId(sourceVertex, destVertex);
+								ArrayList<Integer> addedEdge = new ArrayList<Integer>();
+								ArrayList<Integer> addedObjects = new ArrayList<Integer>();
+								Iterator<Tuple4<Object, Object, Double, ArrayList<RoadObject>>> iter = theTup._2()
+										.iterator();
+								while (iter.hasNext()) {
+									Tuple4<Object, Object, Double, ArrayList<RoadObject>> listInfo = iter.next();
+									sourceVertex = Integer.parseInt(String.valueOf(listInfo._1()));
+									destVertex = Integer.parseInt(String.valueOf(listInfo._2()));
+									edgeLength = listInfo._3();
 
-										if (!roadObjList.isEmpty()) {
-											for (int i = 0; i < roadObjList.size(); i++) {
-												roadObjectId = roadObjList.get(i).getObjectId();
-												roadObjectType = roadObjList.get(i).getType();
-												distanceFromStart = roadObjList.get(i).getDistanceFromStartNode();
+									ArrayList<RoadObject> roadObjList = listInfo._4();
 
-												RoadObject rn0 = new RoadObject();
-												rn0.setObjId(roadObjectId);
-												rn0.setType(roadObjectType);
-												rn0.setDistanceFromStartNode(distanceFromStart);
+									if (addedEdge.isEmpty()) {
+										subGraph0.addEdge(sourceVertex, destVertex, edgeLength);
+										int currentEdgeId = subGraph0.getEdgeId(sourceVertex, destVertex);
+										addedEdge.add(currentEdgeId);
 
-												if (addedObjects.isEmpty()) {
-													subgraph0.addObjectOnEdge(currentEdgeId, rn0);
-													addedObjects.add(rn0.getObjectId());
-												} else if ((!addedObjects.isEmpty())
-														&& (!addedObjects.contains(rn0.getObjectId()))) {
-													subgraph0.addObjectOnEdge(currentEdgeId, rn0);
-													addedObjects.add(rn0.getObjectId());
-												}
-
-											}
-										}
-
+									} else if ((!addedEdge.isEmpty()
+											&& (!addedEdge.contains(subGraph0.getEdgeId(sourceVertex, destVertex))))) {
+										subGraph0.addEdge(sourceVertex, destVertex, edgeLength);
+										int currentEdgeId = subGraph0.getEdgeId(sourceVertex, destVertex);
+										addedEdge.add(currentEdgeId);
 									}
 
-									// System.out.println(theTup._1());
-								} else if ((Integer.parseInt(String.valueOf(theTup._1()))) == 0) {
-									ArrayList<Integer> addedObjects = new ArrayList<Integer>();
-									Iterator<Tuple4<Object, Object, Double, ArrayList<RoadObject>>> iter = theTup._2()
-											.iterator();
-									while (iter.hasNext()) {
-										Tuple4<Object, Object, Double, ArrayList<RoadObject>> listInfo = iter.next();
-										sourceVertex = Integer.parseInt(String.valueOf(listInfo._1()));
-										destVertex = Integer.parseInt(String.valueOf(listInfo._2()));
-										edgeLength = listInfo._3();
-										ArrayList<RoadObject> roadObjList = listInfo._4();
+									if (roadObjList != null) {
+										for (int i = 0; i < roadObjList.size(); i++) {
+											roadObjectId = roadObjList.get(i).getObjectId();
+											roadObjectType = roadObjList.get(i).getType();
+											distanceFromStart = roadObjList.get(i).getDistanceFromStartNode();
 
-										subGraph1.addEdge(sourceVertex, destVertex, edgeLength);
-										int currentEdgeId = subGraph1.getEdgeId(sourceVertex, destVertex);
+											RoadObject rn0 = new RoadObject();
+											rn0.setObjId(roadObjectId);
+											rn0.setType(roadObjectType);
+											rn0.setDistanceFromStartNode(distanceFromStart);
 
-										if (!roadObjList.isEmpty()) {
-											for (int i = 0; i < roadObjList.size(); i++) {
-												roadObjectId = roadObjList.get(i).getObjectId();
-												roadObjectType = roadObjList.get(i).getType();
-												distanceFromStart = roadObjList.get(i).getDistanceFromStartNode();
-
-												RoadObject rn1 = new RoadObject();
-												rn1.setObjId(roadObjectId);
-												rn1.setType(roadObjectType);
-												rn1.setDistanceFromStartNode(distanceFromStart);
-
-												if (addedObjects.isEmpty()) {
-													subGraph1.addObjectOnEdge(currentEdgeId, rn1);
-													addedObjects.add(rn1.getObjectId());
-												} else if ((!addedObjects.isEmpty())
-														&& (!addedObjects.contains(rn1.getObjectId()))) {
-													subGraph1.addObjectOnEdge(currentEdgeId, rn1);
-													addedObjects.add(rn1.getObjectId());
-												}
-
+											if (addedObjects.isEmpty()) {
+												subGraph0.addObjectOnEdge(subGraph0.getEdgeId(sourceVertex, destVertex),
+														rn0);
+												addedObjects.add(rn0.getObjectId());
+											} else if ((!addedObjects.isEmpty())
+													&& (!addedObjects.contains(rn0.getObjectId()))) {
+												subGraph0.addObjectOnEdge(subGraph0.getEdgeId(sourceVertex, destVertex),
+														rn0);
+												addedObjects.add(rn0.getObjectId());
 											}
-										}
 
+										}
 									}
+
 								}
+								ANNNaive ann0 = new ANNNaive();
+								Map<Integer, Integer> result = ann0.compute(subGraph0, true);
+								NNListMap.add(result);
+
 							}
-							subgraph0.printObjectsOnEdges();
-							subGraph1.printObjectsOnEdges();
+
+							System.out.println(NNListMap);
 
 						}
 					});
 
-//			JavaPairRDD<Object, Iterable<Tuple5<Object, Object, Object, Double, ArrayList<RoadObject>>>> attribSubgGraphsRDD = jscontext
-//					.parallelize(tuplesForSubgraphs).groupBy(x -> x._1())
-//					.partitionBy(new CustomPartitioner(CustomPartitionSize));
-//
-//			attribSubgGraphsRDD.foreachPartition(
-//					new VoidFunction<Iterator<Tuple2<Object, Iterable<Tuple5<Object, Object, Object, Double, ArrayList<RoadObject>>>>>>() {
-//
-//						@Override
-//						public void call(
-//								Iterator<Tuple2<Object, Iterable<Tuple5<Object, Object, Object, Double, ArrayList<RoadObject>>>>> tupleIterator)
-//								throws Exception {
-//
-//							while (tupleIterator.hasNext()) {
-//
-//								if (Integer.parseInt(String.valueOf(tupleIterator.next()._1())) == 1) {
-//									System.out.println(tupleIterator.next()._1());
-//								}
-//
-//							}
-//							// TODO Auto-generated method stub
-//
-//						}
-//					});
-
-//			adjVertForSubgraphsRDD.foreachPartition(
-//					new VoidFunction<Iterator<Tuple2<Object, Map<Object, Map<Object, Tuple2<Double, ArrayList<RoadObject>>>>>>>() {
+//			toCreateSubgraphRDD.foreachPartition(
+//					new VoidFunction<Iterator<Tuple2<Object, Iterable<Tuple4<Object, Object, Double, ArrayList<RoadObject>>>>>>() {
 //
 //						/**
 //						 * 
 //						 */
 //						private static final long serialVersionUID = 1L;
+//						CoreGraph subGraph0 = new CoreGraph();
+//						CoreGraph subGraph1 = new CoreGraph();
 //
 //						@Override
 //						public void call(
-//								Iterator<Tuple2<Object, Map<Object, Map<Object, Tuple2<Double, ArrayList<RoadObject>>>>>> tupleRow)
-//								throws Exception {
-//							int sourceVertex;
-//							int destVertex;
-//							double edgeLength;
-//
-//							int roadObjectId;
-//							boolean roadObjectType;
-//							double distanceFromStart;
-//
-//							CoreGraph subgraph0 = new CoreGraph();
-//							CoreGraph subgraph1 = new CoreGraph();
-//							ArrayList<Integer> addedObjects = new ArrayList<Integer>();
-//
-//							
-//
-//							while (tupleRow.hasNext()) {
-//
-//								Map<Object, Map<Object, Tuple2<Double, ArrayList<RoadObject>>>> newMap = tupleRow.next()
-//										._2();
-//
-//								if ((Integer.parseInt(String.valueOf(tupleRow.next()._1())) == 0)) {
-//
-//									for (Object srcVertex : newMap.keySet()) {
-//
-//										for (Object dstVertex : newMap.get(srcVertex).keySet()) {
-//
-//											sourceVertex = Integer.parseInt(String.valueOf(srcVertex));
-//											destVertex = Integer.parseInt(String.valueOf(dstVertex));
-//											edgeLength = newMap.get(srcVertex).get(dstVertex)._1();
-//
-//											subgraph0.addEdge(sourceVertex, destVertex, edgeLength);
-//											int currentEdgeId = subgraph0.getEdgeId(sourceVertex, destVertex);
-//
-//											if (newMap.get(srcVertex).get(dstVertex)._2() != null) {
-//
-//												for (int i = 0; i < newMap.get(srcVertex).get(dstVertex)._2()
-//														.size(); i++) {
-//
-//													roadObjectId = newMap.get(srcVertex).get(dstVertex)._2().get(i)
-//															.getObjectId();
-//													roadObjectType = newMap.get(srcVertex).get(dstVertex)._2().get(i)
-//															.getType();
-//													distanceFromStart = newMap.get(srcVertex).get(dstVertex)._2().get(i)
-//															.getDistanceFromStartNode();
-//													RoadObject rn0 = new RoadObject();
-//													rn0.setObjId(roadObjectId);
-//													rn0.setType(roadObjectType);
-//													rn0.setDistanceFromStartNode(distanceFromStart);
-//
-//													if (addedObjects.isEmpty()) {
-//														subgraph0.addObjectOnEdge(currentEdgeId, rn0);
-////														System.out.println(
-////																rn0.getObjectId() + " added on edge: " + currentEdgeId);
-//														addedObjects.add(rn0.getObjectId());
-//
-//													} else if ((!addedObjects.isEmpty())
-//															&& (!addedObjects.contains(rn0.getObjectId()))) {
-//														subgraph0.addObjectOnEdge(currentEdgeId, rn0);
-////														System.out.println(
-////																rn0.getObjectId() + " added on edge: " + currentEdgeId);
-//														addedObjects.add(rn0.getObjectId());
-//
-//													}
-//
-//												}
-//											}
-//
-//										}
-//									}
-//
-//								} else if ((Integer.parseInt(String.valueOf(tupleRow.next()._1())) == 1)) {
-//
-//									for (Object srcVertex : newMap.keySet()) {
-//										for (Object dstVertex : newMap.get(srcVertex).keySet()) {
-//
-//											sourceVertex = Integer.parseInt(String.valueOf(srcVertex));
-//											destVertex = Integer.parseInt(String.valueOf(dstVertex));
-//											edgeLength = newMap.get(srcVertex).get(dstVertex)._1();
-//
-//											subgraph1.addEdge(sourceVertex, destVertex, edgeLength);
-//											int currentEdgeId = subgraph1.getEdgeId(sourceVertex, destVertex);
-//
-//											if (newMap.get(srcVertex).get(dstVertex)._2() != null) {
-//												for (int i = 0; i < newMap.get(srcVertex).get(dstVertex)._2()
-//														.size(); i++) {
-//
-//													roadObjectId = newMap.get(srcVertex).get(dstVertex)._2().get(i)
-//															.getObjectId();
-//													roadObjectType = newMap.get(srcVertex).get(dstVertex)._2().get(i)
-//															.getType();
-//													distanceFromStart = newMap.get(srcVertex).get(dstVertex)._2().get(i)
-//															.getDistanceFromStartNode();
-//													RoadObject rn1 = new RoadObject();
-//													rn1.setObjId(roadObjectId);
-//													rn1.setType(roadObjectType);
-//													rn1.setDistanceFromStartNode(distanceFromStart);
-//
-//													if (addedObjects.isEmpty()) {
-//														subgraph1.addObjectOnEdge(currentEdgeId, rn1);
-////														System.err.println(
-////																rn1.getObjectId() + " added on edge: " + currentEdgeId);
-//														addedObjects.add(rn1.getObjectId());
-//													} else if ((!addedObjects.isEmpty())
-//															&& (!addedObjects.contains(rn1.getObjectId()))) {
-//														subgraph1.addObjectOnEdge(currentEdgeId, rn1);
-////														System.err.println(
-////																rn1.getObjectId() + " added on edge: " + currentEdgeId);
-//														addedObjects.add(rn1.getObjectId());
-//
-//													}
-//
-//												}
-//											}
-//
-//										}
-//									}
-//								}
-//
-//							}
-//
-//							// subgraph0.printObjectsOnEdges();
-//							// subgraph1.printObjectsOnEdges();
-//
-////							// Straight forward nearest neighbor algorithm from each true to false.
-////							ANNNaive ann = new ANNNaive();
-////							System.err.println("-------------------------------");
-////							Map<Integer, Integer> nearestNeighorPairsSubg0 = ann.compute(subgraph0, true);
-////							System.out.println("for subgraph0");
-////							System.out.println(nearestNeighorPairsSubg0);
-////							System.err.println("-------------------------------");
-////
-////							System.err.println("-------------------------------");
-////							Map<Integer, Integer> nearestNeighorPairsSubg1 = ann.compute(subgraph1, true);
-////							System.out.println("for subgraph1");
-////							System.out.println(nearestNeighorPairsSubg1);
-////							System.err.println("-------------------------------");
-//
-//						}
-//
-//					});
-
-//			adjVertForSubgraphsRDD.foreachPartition(
-//					new VoidFunction<Iterator<Tuple2<Object, Iterable<Map<Object, Map<Object, Tuple2<Double, ArrayList<RoadObject>>>>>>>>() {
-//
-//						/**
-//						 * 
-//						 */
-//						private static final long serialVersionUID = -8802441176347993738L;
-//
-//						@Override
-//						public void call(
-//								Iterator<Tuple2<Object, Iterable<Map<Object, Map<Object, Tuple2<Double, ArrayList<RoadObject>>>>>>> eachTuple)
+//								Iterator<Tuple2<Object, Iterable<Tuple4<Object, Object, Double, ArrayList<RoadObject>>>>> eachTuple)
 //								throws Exception {
 //
 //							int sourceVertex;
@@ -659,70 +414,130 @@ public class GraphNetworkDefault {
 //							int roadObjectId;
 //							boolean roadObjectType;
 //							double distanceFromStart;
-//
-//							CoreGraph subgraph0 = new CoreGraph();
-//							CoreGraph subgraph1 = new CoreGraph();
-//							CoreGraph subgraph = new CoreGraph();
-//							ArrayList<Integer> addedObjects = new ArrayList<Integer>();
+//							// TODO Auto-generated method stub
 //
 //							while (eachTuple.hasNext()) {
+//								Tuple2<Object, Iterable<Tuple4<Object, Object, Double, ArrayList<RoadObject>>>> theTup = eachTuple
+//										.next();
+//								if ((Integer.parseInt(String.valueOf(theTup._1()))) == 1) {
+//									ArrayList<Integer> addedEdge = new ArrayList<Integer>();
+//									ArrayList<Integer> addedObjects = new ArrayList<Integer>();
+//									Iterator<Tuple4<Object, Object, Double, ArrayList<RoadObject>>> iter = theTup._2()
+//											.iterator();
+//									while (iter.hasNext()) {
+//										Tuple4<Object, Object, Double, ArrayList<RoadObject>> listInfo = iter.next();
+//										sourceVertex = Integer.parseInt(String.valueOf(listInfo._1()));
+//										destVertex = Integer.parseInt(String.valueOf(listInfo._2()));
+//										edgeLength = listInfo._3();
 //
-//								System.out.println("hello " + eachTuple.next()._1());
-//								for (Map<Object, Map<Object, Tuple2<Double, ArrayList<RoadObject>>>> entryMap : eachTuple
-//										.next()._2()) {
+//										ArrayList<RoadObject> roadObjList = listInfo._4();
 //
-//									// System.out.println("EntryMap: " + eachTuple.next()._1() + " " + entryMap);
-//									for (Object sourceKey : entryMap.keySet()) {
-//										// System.err.println(entryMap.get(sourceKey));
-//										for (Object destKey : entryMap.get(sourceKey).keySet()) {
-//											if ((entryMap.get(sourceKey).get(destKey)._2()) != null) {
-////												System.out.println(sourceKey + " --> " + destKey + ": "
-////														+ entryMap.get(sourceKey).get(destKey)._2());
+//										if (addedEdge.isEmpty()) {
+//											subGraph0.addEdge(sourceVertex, destVertex, edgeLength);
+//											int currentEdgeId = subGraph0.getEdgeId(sourceVertex, destVertex);
+//											addedEdge.add(currentEdgeId);
 //
-//												sourceVertex = Integer.parseInt(String.valueOf(sourceKey));
-//												destVertex = Integer.parseInt(String.valueOf(destKey));
-//												edgeLength = entryMap.get(sourceKey).get(destKey)._1();
+//										} else if ((!addedEdge.isEmpty() && (!addedEdge
+//												.contains(subGraph0.getEdgeId(sourceVertex, destVertex))))) {
+//											subGraph0.addEdge(sourceVertex, destVertex, edgeLength);
+//											int currentEdgeId = subGraph0.getEdgeId(sourceVertex, destVertex);
+//											addedEdge.add(currentEdgeId);
+//										}
 //
-//												subgraph.addEdge(sourceVertex, destVertex, edgeLength);
+//										if (!roadObjList.isEmpty()) {
+//											for (int i = 0; i < roadObjList.size(); i++) {
+//												roadObjectId = roadObjList.get(i).getObjectId();
+//												roadObjectType = roadObjList.get(i).getType();
+//												distanceFromStart = roadObjList.get(i).getDistanceFromStartNode();
 //
-//												for (int i = 0; i < entryMap.get(sourceKey).get(destKey)._2()
-//														.size(); i++) {
-//													int currentEdgeId = subgraph.getEdgeId(sourceVertex, destVertex);
+//												RoadObject rn0 = new RoadObject();
+//												rn0.setObjId(roadObjectId);
+//												rn0.setType(roadObjectType);
+//												rn0.setDistanceFromStartNode(distanceFromStart);
 //
-//													roadObjectId = entryMap.get(sourceKey).get(destKey)._2().get(i)
-//															.getObjectId();
-//													roadObjectType = entryMap.get(sourceKey).get(destKey)._2().get(i)
-//															.getType();
-//													distanceFromStart = entryMap.get(sourceKey).get(destKey)._2().get(i)
-//															.getDistanceFromStartNode();
-//													RoadObject rn = new RoadObject();
-//													rn.setObjId(roadObjectId);
-//													rn.setType(roadObjectType);
-//													rn.setDistanceFromStartNode(distanceFromStart);
-//
-//													subgraph.addObjectOnEdge(currentEdgeId, rn);
+//												if (addedObjects.isEmpty()) {
+//													subGraph0.addObjectOnEdge(
+//															subGraph0.getEdgeId(sourceVertex, destVertex), rn0);
+//													addedObjects.add(rn0.getObjectId());
+//												} else if ((!addedObjects.isEmpty())
+//														&& (!addedObjects.contains(rn0.getObjectId()))) {
+//													subGraph0.addObjectOnEdge(
+//															subGraph0.getEdgeId(sourceVertex, destVertex), rn0);
+//													addedObjects.add(rn0.getObjectId());
 //												}
 //
-//											} else {
-//												sourceVertex = Integer.parseInt(String.valueOf(sourceKey));
-//												destVertex = Integer.parseInt(String.valueOf(destKey));
-//												edgeLength = entryMap.get(sourceKey).get(destKey)._1();
-//
-//												subgraph.addEdge(sourceVertex, destVertex, edgeLength);
-//
 //											}
-//
 //										}
+//
 //									}
 //
-//								}
-//								// subgraph.printEdgesInfo();
+//									// System.out.println(theTup._1());
+//								} else if ((Integer.parseInt(String.valueOf(theTup._1()))) == 0) {
+//									ArrayList<Integer> addedEdge = new ArrayList<Integer>();
+//									ArrayList<Integer> addedObjects = new ArrayList<Integer>();
+//									Iterator<Tuple4<Object, Object, Double, ArrayList<RoadObject>>> iter = theTup._2()
+//											.iterator();
+//									while (iter.hasNext()) {
+//										Tuple4<Object, Object, Double, ArrayList<RoadObject>> listInfo = iter.next();
+//										sourceVertex = Integer.parseInt(String.valueOf(listInfo._1()));
+//										destVertex = Integer.parseInt(String.valueOf(listInfo._2()));
+//										edgeLength = listInfo._3();
+//										ArrayList<RoadObject> roadObjList = listInfo._4();
 //
+//										if (addedEdge.isEmpty()) {
+//											subGraph1.addEdge(sourceVertex, destVertex, edgeLength);
+//											int currentEdgeId = subGraph1.getEdgeId(sourceVertex, destVertex);
+//											addedEdge.add(currentEdgeId);
+//
+//										} else if ((!addedEdge.isEmpty() && (!addedEdge
+//												.contains(subGraph1.getEdgeId(sourceVertex, destVertex))))) {
+//											subGraph1.addEdge(sourceVertex, destVertex, edgeLength);
+//											int currentEdgeId = subGraph1.getEdgeId(sourceVertex, destVertex);
+//											addedEdge.add(currentEdgeId);
+//										}
+//
+//										if (!roadObjList.isEmpty()) {
+//											for (int i = 0; i < roadObjList.size(); i++) {
+//												roadObjectId = roadObjList.get(i).getObjectId();
+//												roadObjectType = roadObjList.get(i).getType();
+//												distanceFromStart = roadObjList.get(i).getDistanceFromStartNode();
+//
+//												RoadObject rn1 = new RoadObject();
+//												rn1.setObjId(roadObjectId);
+//												rn1.setType(roadObjectType);
+//												rn1.setDistanceFromStartNode(distanceFromStart);
+//
+//												if (addedObjects.isEmpty()) {
+//													subGraph1.addObjectOnEdge(
+//															subGraph1.getEdgeId(sourceVertex, destVertex), rn1);
+//													addedObjects.add(rn1.getObjectId());
+//												} else if ((!addedObjects.isEmpty())
+//														&& (!addedObjects.contains(rn1.getObjectId()))) {
+//													subGraph1.addObjectOnEdge(
+//															subGraph1.getEdgeId(sourceVertex, destVertex), rn1);
+//													addedObjects.add(rn1.getObjectId());
+//												}
+//
+//											}
+//										}
+//
+//									}
+//								}
 //							}
+//							ANNNaive ann0 = new ANNNaive();
+//							ANNNaive ann1 = new ANNNaive();
+//
+//							Map<Integer, Integer> nnpair0 = ann0.compute(subGraph0, true);
+//							Map<Integer, Integer> nnpair1 = ann1.compute(subGraph1, true);
+//
+//							System.out.println(nnpair0);
+//							System.out.print(nnpair1);
+//
+//							// subGraph1.printNodesInfo();
 //
 //						}
-//
 //					});
+
 			jscontext.close();
 
 		}
