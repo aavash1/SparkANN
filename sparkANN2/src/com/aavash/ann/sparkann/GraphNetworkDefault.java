@@ -19,6 +19,7 @@ import org.apache.spark.api.java.function.PairFlatMapFunction;
 import org.apache.spark.api.java.function.VoidFunction;
 
 import com.aavash.ann.sparkann.algorithm.ANNNaive;
+import com.aavash.ann.sparkann.algorithm.RandomObjectGenerator;
 import com.aavash.ann.sparkann.graph.CustomPartitioner;
 import com.ann.sparkann.framework.CoreGraph;
 import com.ann.sparkann.framework.Node;
@@ -39,6 +40,7 @@ import scala.reflect.ClassTag;
 public class GraphNetworkDefault {
 
 	public static void main(String[] args) throws Exception {
+		System.setProperty("java.util.Arrays.useLegacyMergeSort", "true");
 
 		// Defining tags
 
@@ -49,8 +51,8 @@ public class GraphNetworkDefault {
 		 * 1 Pass the path for loading the datasets 1.1 Dataset for graph containing
 		 * nodes and edges
 		 */
-		String nodeDatasetFile = "Dataset/PCManualGraphNodes.txt";
-		String edgeDataSetFile = "Dataset/PCManualGraphEdges.txt";
+		String nodeDatasetFile = "/home/aavash/git/SparkANN/sparkANN2/Dataset/CalNodes.txt";
+		String edgeDataSetFile = "/home/aavash/git/SparkANN/sparkANN2/Dataset/CalEdge.txt";
 
 		// TinyGraph
 		// String nodeDatasetFile = "Dataset/TinygraphNodes.txt";
@@ -60,7 +62,7 @@ public class GraphNetworkDefault {
 		 * 1.2 Dataset for METIS graph and Partition Output
 		 */
 		String metisInputGraph = "Metisgraph/ManualGraph.txt";
-		String metisPartitionOutputFile = "PartitionDataset/PCmanualGr_part2.txt";
+		String metisPartitionOutputFile = "/home/aavash/git/SparkANN/sparkANN2/PartitionDataset/Cal_Part_2.txt";
 		// String metisPartitionOutputFile = "PartitionDataset/tg_part.txt";
 
 		/**
@@ -68,7 +70,7 @@ public class GraphNetworkDefault {
 		 */
 		CoreGraph cGraph = UtilsManagement.readEdgeTxtFileReturnGraph(edgeDataSetFile);
 
-		YenGraph yGraph = new YenGraph(edgeDataSetFile);
+		// YenGraph yGraph = new YenGraph(edgeDataSetFile);
 
 		/**
 		 * Create Vertices List from the nodeDataset
@@ -87,9 +89,12 @@ public class GraphNetworkDefault {
 		 */
 		// RandomObjectGenerator.generateUniformRandomObjectsOnMap(cGraph, 100, 500);
 
-		String PCManualObject = "Dataset/manualobject/ManualObjectsOnRoad.txt";
-		// String PCManualObject = "Dataset/manualobject/ManualObjectsOnTinyGraph.txt";
-		UtilsManagement.readRoadObjectTxtFile1(cGraph, PCManualObject);
+		// String PCManualObject =
+		// "/home/aavash/git/SparkANN/sparkANN2/Dataset/manualobject/ManualObjectsOnRoad.txt";
+		// String PCManualObject =
+		// "/home/aavash/git/SparkANN/sparkANN2/Dataset/manualobject/ManualObjectOnTinyGraph.txt";
+		RandomObjectGenerator.zgenerateCCDistribution(cGraph, 2, 1, 20000, 20000);
+		// UtilsManagement.readRoadObjectTxtFile1(cGraph, PCManualObject);
 		// cGraph.printObjectsOnEdges();
 
 		/**
@@ -111,7 +116,7 @@ public class GraphNetworkDefault {
 		}
 
 		// Depending upon the size of cluster, CustomPartitionSize can be changed
-		int CustomPartitionSize = 3;
+		int CustomPartitionSize = 2;
 //		int CustomPartitionSize = 2;
 
 		/**
@@ -215,14 +220,16 @@ public class GraphNetworkDefault {
 		 * find the shortest path from one partition to another partition Storing all
 		 * the vertex that are in shortest path list in a separate ArrayList
 		 */
-		ArrayList<List<Path>> shortestPathList = runSPF(yGraph, stringBoundaryVertices, CustomPartitionSize);
-		ArrayList<List<Path>> shortestPathList1 = runSP(yGraph, boundaryVerticesList, CustomPartitionSize);
+		// ArrayList<List<Path>> shortestPathList = runSPF(yGraph,
+		// stringBoundaryVertices, CustomPartitionSize);
+		// ArrayList<List<Path>> shortestPathList1 = runSP(yGraph, boundaryVerticesList,
+		// CustomPartitionSize);
 		// System.out.println("Verify the shortest-paths");
 //		for (List<Path> p1 : shortestPathList) {
 //			System.out.println(p1 + " ");
 //		}
 
-		List<Integer> shortestpathsUnion = unifyAllShortestPaths(shortestPathList);
+		// List<Integer> shortestpathsUnion = unifyAllShortestPaths(shortestPathList);
 		System.out.println();
 
 		/**
@@ -230,11 +237,21 @@ public class GraphNetworkDefault {
 		 */
 		Logger.getLogger("org.apache").setLevel(Level.WARN);
 
-		SparkConf config = new SparkConf().setMaster("local[*]").setAppName("Final Graph")
-				.set("spark.history.fs.logDirectory", "file:///D:/spark-logs")
-				.set("spark.eventLog.dir", "file:///D:/spark-logs").set("spark.eventLog.enabled", "true");
+		SparkConf config = new SparkConf().setAppName("ANNNaive").set("spark.locality.wait", "0")
+				.set("spark.submit.deployMode", "cluster").set("spark.driver.maxResultSize", "2g")
+				.set("spark.executor.memory", "4g").setMaster("spark://210.107.197.210:7077")
+				.set("spark.cores.max", "15").set("spark.blockManager.port", "10025")
+				.set("spark.driver.blockManager.port", "10026").set("spark.driver.port", "10027")
+				.set("spark.shuffle.service.enabled", "false").set("spark.dynamicAllocation.enabled", "false");
+		;
+		// new SparkConf().setMaster("local[*]").setAppName("Final Graph");
+		// .set("spark.history.fs.logDirectory", "file:///D:/spark-logs")
+		// .set("spark.eventLog.dir",
+		// "file:///D:/spark-logs").set("spark.eventLog.enabled", "true");
 
 		try (JavaSparkContext jscontext = new JavaSparkContext(config)) {
+			
+			System.setProperty("java.util.Arrays.useLegacyMergeSort", "true");
 
 			JavaRDD<String> BoundaryVertexRDD = jscontext.parallelize(boundaryVerticesList);
 			JavaRDD<cEdge> BoundaryEdgeRDD = jscontext.parallelize(BoundaryEdge);
@@ -300,7 +317,7 @@ public class GraphNetworkDefault {
 			JavaPairRDD<Object, Iterable<Tuple4<Object, Object, Double, ArrayList<RoadObject>>>> toCreateSubgraphRDD = tupleForSubgraphsPairRDD
 					.groupByKey().partitionBy(new CustomPartitioner(CustomPartitionSize));
 
-			toCreateSubgraphRDD.foreach(x -> System.out.println(x));
+			// toCreateSubgraphRDD.foreach(x -> System.out.println(x));
 
 			toCreateSubgraphRDD.foreachPartition(
 					new VoidFunction<Iterator<Tuple2<Object, Iterable<Tuple4<Object, Object, Double, ArrayList<RoadObject>>>>>>() {

@@ -99,7 +99,15 @@ public class RoadObject implements Serializable {
 
 		// this should be the case "Every java class is using this comparator
 		public int compare(RoadObject obj1, RoadObject obj2) {
-			double distanceDiff = obj1.getDistanceFromStartNode() - obj2.getDistanceFromStartNode();
+			double distanceDiff = 0.0;
+			if (obj1.getDistanceFromStartNode() < obj2.getDistanceFromStartNode()) {
+				distanceDiff = obj2.getDistanceFromStartNode() - obj1.getDistanceFromStartNode();
+			}
+
+			else if (obj1.getDistanceFromStartNode() > obj2.getDistanceFromStartNode()) {
+				distanceDiff = obj1.getDistanceFromStartNode() - obj2.getDistanceFromStartNode();
+			}
+
 			return (int) Math.round(distanceDiff);
 		}
 
