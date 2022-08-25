@@ -101,11 +101,11 @@ public class RoadObject implements Serializable {
 		public int compare(RoadObject obj1, RoadObject obj2) {
 			double distanceDiff = 0.0;
 			if (obj1.getDistanceFromStartNode() < obj2.getDistanceFromStartNode()) {
-				distanceDiff = obj2.getDistanceFromStartNode() - obj1.getDistanceFromStartNode();
+				distanceDiff = Math.abs(obj2.getDistanceFromStartNode() - obj1.getDistanceFromStartNode());
 			}
 
 			else if (obj1.getDistanceFromStartNode() > obj2.getDistanceFromStartNode()) {
-				distanceDiff = obj1.getDistanceFromStartNode() - obj2.getDistanceFromStartNode();
+				distanceDiff = Math.abs(obj1.getDistanceFromStartNode() - obj2.getDistanceFromStartNode());
 			}
 
 			return (int) Math.round(distanceDiff);

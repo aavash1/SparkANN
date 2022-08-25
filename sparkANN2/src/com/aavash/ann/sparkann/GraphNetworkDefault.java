@@ -55,20 +55,19 @@ public class GraphNetworkDefault {
 		 * 1 Pass the path for loading the datasets 1.1 Dataset for graph containing
 		 * nodes and edges
 		 */
-//		String nodeDatasetFile = "/home/aavash/git/SparkANN/sparkANN2/Dataset/CalNodes.txt";
-//		String edgeDataSetFile = "/home/aavash/git/SparkANN/sparkANN2/Dataset/CalEdge.txt";
+		String nodeDatasetFile = "/home/aavash/git/SparkANN/sparkANN2/Dataset/CalNodes.txt";
+		String edgeDataSetFile = "/home/aavash/git/SparkANN/sparkANN2/Dataset/CalEdge.txt";
 
 		// TinyGraph
-		String nodeDatasetFile = "Dataset/PCManualGraphNodes.txt";
-		String edgeDataSetFile = "Dataset/PCManualGraphEdges.txt";
+	//	String nodeDatasetFile = "Dataset/PCManualGraphNodes.txt";
+		//String edgeDataSetFile = "Dataset/PCManualGraphEdges.txt";
 
 		/**
 		 * 1.2 Dataset for METIS graph and Partition Output
 		 */
 		String metisInputGraph = "Metisgraph/ManualGraph.txt";
-		// String metisPartitionOutputFile =
-		// "/home/aavash/git/SparkANN/sparkANN2/PartitionDataset/Cal_Part_2.txt";
-		String metisPartitionOutputFile = "PartitionDataset/PCmanualGr_part2.txt";
+		String metisPartitionOutputFile ="/home/aavash/git/SparkANN/sparkANN2/PartitionDataset/Cal_Part_2.txt";
+		//String metisPartitionOutputFile = "PartitionDataset/PCmanualGr_part2.txt";
 
 		/**
 		 * Load Graph using CoreGraph Framework, YenGraph for calculating shortest paths
@@ -96,9 +95,9 @@ public class GraphNetworkDefault {
 
 		// String PCManualObject =
 		// "/home/aavash/git/SparkANN/sparkANN2/Dataset/manualobject/ManualObjectsOnRoad.txt";
-		String PCManualObject = "Dataset/manualobject/ManualObjectsOnRoad.txt";
-		UtilsManagement.readRoadObjectTxtFile1(cGraph, PCManualObject);
-		// RandomObjectGenerator.zgenerateCCDistribution(cGraph, 2, 1, 20000, 20000);
+		//String PCManualObject = "Dataset/manualobject/ManualObjectsOnRoad.txt";
+		//UtilsManagement.readRoadObjectTxtFile1(cGraph, PCManualObject);
+		 RandomObjectGenerator.zgenerateCCDistribution(cGraph, 2, 1, 20000, 20000);
 
 		// cGraph.printEdgesInfo();
 
@@ -121,8 +120,8 @@ public class GraphNetworkDefault {
 		}
 
 		// Depending upon the size of cluster, CustomPartitionSize can be changed
-		int CustomPartitionSize = 3;
-//		int CustomPartitionSize = 2;
+//		int CustomPartitionSize = 3;
+		int CustomPartitionSize = 2;
 
 		/**
 		 * Selecting the Boundaries after graph partitions
@@ -243,14 +242,14 @@ public class GraphNetworkDefault {
 		 */
 		Logger.getLogger("org.apache").setLevel(Level.WARN);
 
-//		SparkConf config = new SparkConf().setAppName("ANNNaive").set("spark.locality.wait", "0")
-//				.set("spark.submit.deployMode", "cluster").set("spark.driver.maxResultSize", "2g")
-//				.set("spark.executor.memory", "4g").setMaster("spark://210.107.197.210:7077")
-//				.set("spark.cores.max", "15").set("spark.blockManager.port", "10025")
-//				.set("spark.driver.blockManager.port", "10026").set("spark.driver.port", "10027")
-//				.set("spark.shuffle.service.enabled", "false").set("spark.dynamicAllocation.enabled", "false");
+		SparkConf config = new SparkConf().setAppName("ANNNaive").set("spark.locality.wait", "0")
+				.set("spark.submit.deployMode", "cluster").set("spark.driver.maxResultSize", "2g")
+				.set("spark.executor.memory", "4g").setMaster("spark://210.107.197.210:7077")
+				.set("spark.cores.max", "15").set("spark.blockManager.port", "10025")
+				.set("spark.driver.blockManager.port", "10026").set("spark.driver.port", "10027")
+				.set("spark.shuffle.service.enabled", "false").set("spark.dynamicAllocation.enabled", "false");
 		;
-		SparkConf config = new SparkConf().setMaster("local[*]").setAppName("Graph");
+		//SparkConf config = new SparkConf().setMaster("local[*]").setAppName("Graph");
 
 		try (JavaSparkContext jscontext = new JavaSparkContext(config)) {
 
@@ -327,8 +326,8 @@ public class GraphNetworkDefault {
 
 			// toCreateSubgraphRDD.foreach(x -> System.out.println(x));
 
-			Stopwatch st = new Stopwatch();
-			st.start();
+//			Stopwatch st = new Stopwatch();
+//			st.start();
 
 			toCreateSubgraphRDD.foreachPartition(
 					new VoidFunction<Iterator<Tuple2<Object, Iterable<Tuple4<Object, Object, Double, ArrayList<RoadObject>>>>>>() {
@@ -426,9 +425,9 @@ public class GraphNetworkDefault {
 						}
 					});
 
-			st.stop();
-
-			System.out.print("Elapsed Time in Minute: " + st.elapsedMillis());
+//			st.stop();
+//
+//			System.out.print("Elapsed Time in Minute: " + st.elapsedMillis());
 
 			jscontext.close();
 
