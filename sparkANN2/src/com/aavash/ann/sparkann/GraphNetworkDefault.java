@@ -1,5 +1,6 @@
 package com.aavash.ann.sparkann;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -14,11 +15,12 @@ import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-
+import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.api.java.function.PairFlatMapFunction;
 import org.apache.spark.api.java.function.VoidFunction;
 
 import com.aavash.ann.sparkann.algorithm.ANNNaive;
+import com.aavash.ann.sparkann.algorithm.NearestNeighbor;
 import com.aavash.ann.sparkann.algorithm.RandomObjectGenerator;
 import com.aavash.ann.sparkann.graph.CustomPartitioner;
 import com.ann.sparkann.framework.CoreGraph;
@@ -28,11 +30,13 @@ import com.ann.sparkann.framework.UtilitiesMgmt;
 import com.ann.sparkann.framework.UtilsManagement;
 import com.ann.sparkann.framework.cEdge;
 
+import avro.shaded.com.google.common.base.Stopwatch;
 import breeze.optimize.linear.LinearProgram.Result;
 import edu.ufl.cise.bsmock.graph.YenGraph;
 import edu.ufl.cise.bsmock.graph.ksp.Yen;
 import edu.ufl.cise.bsmock.graph.util.Path;
 import scala.Tuple2;
+import scala.Tuple3;
 import scala.Tuple4;
 import scala.Tuple5;
 import scala.reflect.ClassTag;
@@ -51,26 +55,27 @@ public class GraphNetworkDefault {
 		 * 1 Pass the path for loading the datasets 1.1 Dataset for graph containing
 		 * nodes and edges
 		 */
-		String nodeDatasetFile = "/home/aavash/git/SparkANN/sparkANN2/Dataset/CalNodes.txt";
-		String edgeDataSetFile = "/home/aavash/git/SparkANN/sparkANN2/Dataset/CalEdge.txt";
+//		String nodeDatasetFile = "/home/aavash/git/SparkANN/sparkANN2/Dataset/CalNodes.txt";
+//		String edgeDataSetFile = "/home/aavash/git/SparkANN/sparkANN2/Dataset/CalEdge.txt";
 
 		// TinyGraph
-		// String nodeDatasetFile = "Dataset/TinygraphNodes.txt";
-		// String edgeDataSetFile = "Dataset/TinygraphEdges.txt";
+		String nodeDatasetFile = "Dataset/PCManualGraphNodes.txt";
+		String edgeDataSetFile = "Dataset/PCManualGraphEdges.txt";
 
 		/**
 		 * 1.2 Dataset for METIS graph and Partition Output
 		 */
 		String metisInputGraph = "Metisgraph/ManualGraph.txt";
-		String metisPartitionOutputFile = "/home/aavash/git/SparkANN/sparkANN2/PartitionDataset/Cal_Part_2.txt";
-		// String metisPartitionOutputFile = "PartitionDataset/tg_part.txt";
+		// String metisPartitionOutputFile =
+		// "/home/aavash/git/SparkANN/sparkANN2/PartitionDataset/Cal_Part_2.txt";
+		String metisPartitionOutputFile = "PartitionDataset/PCmanualGr_part2.txt";
 
 		/**
 		 * Load Graph using CoreGraph Framework, YenGraph for calculating shortest paths
 		 */
 		CoreGraph cGraph = UtilsManagement.readEdgeTxtFileReturnGraph(edgeDataSetFile);
 
-		// YenGraph yGraph = new YenGraph(edgeDataSetFile);
+		YenGraph yGraph = new YenGraph(edgeDataSetFile);
 
 		/**
 		 * Create Vertices List from the nodeDataset
@@ -91,11 +96,11 @@ public class GraphNetworkDefault {
 
 		// String PCManualObject =
 		// "/home/aavash/git/SparkANN/sparkANN2/Dataset/manualobject/ManualObjectsOnRoad.txt";
-		// String PCManualObject =
-		// "/home/aavash/git/SparkANN/sparkANN2/Dataset/manualobject/ManualObjectOnTinyGraph.txt";
-		RandomObjectGenerator.zgenerateCCDistribution(cGraph, 2, 1, 20000, 20000);
-		// UtilsManagement.readRoadObjectTxtFile1(cGraph, PCManualObject);
-		// cGraph.printObjectsOnEdges();
+		String PCManualObject = "Dataset/manualobject/ManualObjectsOnRoad.txt";
+		UtilsManagement.readRoadObjectTxtFile1(cGraph, PCManualObject);
+		// RandomObjectGenerator.zgenerateCCDistribution(cGraph, 2, 1, 20000, 20000);
+
+		// cGraph.printEdgesInfo();
 
 		/**
 		 * Read the output of METIS as partitionFile
@@ -116,7 +121,7 @@ public class GraphNetworkDefault {
 		}
 
 		// Depending upon the size of cluster, CustomPartitionSize can be changed
-		int CustomPartitionSize = 2;
+		int CustomPartitionSize = 3;
 //		int CustomPartitionSize = 2;
 
 		/**
@@ -186,6 +191,8 @@ public class GraphNetworkDefault {
 
 //		System.out.println(boundaryPairVertices);
 //		System.out.println(BoundaryEdge);
+//		BoundaryEdge.forEach(
+//				x -> System.out.println(x.getEdgeId() + " src: " + x.getStartNodeId() + " dest: " + x.getEndNodeId()));
 //		System.out.println(stringBoundaryVertices);
 
 		/**
@@ -220,8 +227,7 @@ public class GraphNetworkDefault {
 		 * find the shortest path from one partition to another partition Storing all
 		 * the vertex that are in shortest path list in a separate ArrayList
 		 */
-		// ArrayList<List<Path>> shortestPathList = runSPF(yGraph,
-		// stringBoundaryVertices, CustomPartitionSize);
+		ArrayList<List<Path>> shortestPathList = runSPF(yGraph, stringBoundaryVertices, CustomPartitionSize);
 		// ArrayList<List<Path>> shortestPathList1 = runSP(yGraph, boundaryVerticesList,
 		// CustomPartitionSize);
 		// System.out.println("Verify the shortest-paths");
@@ -237,24 +243,26 @@ public class GraphNetworkDefault {
 		 */
 		Logger.getLogger("org.apache").setLevel(Level.WARN);
 
-		SparkConf config = new SparkConf().setAppName("ANNNaive").set("spark.locality.wait", "0")
-				.set("spark.submit.deployMode", "cluster").set("spark.driver.maxResultSize", "2g")
-				.set("spark.executor.memory", "4g").setMaster("spark://210.107.197.210:7077")
-				.set("spark.cores.max", "15").set("spark.blockManager.port", "10025")
-				.set("spark.driver.blockManager.port", "10026").set("spark.driver.port", "10027")
-				.set("spark.shuffle.service.enabled", "false").set("spark.dynamicAllocation.enabled", "false");
+//		SparkConf config = new SparkConf().setAppName("ANNNaive").set("spark.locality.wait", "0")
+//				.set("spark.submit.deployMode", "cluster").set("spark.driver.maxResultSize", "2g")
+//				.set("spark.executor.memory", "4g").setMaster("spark://210.107.197.210:7077")
+//				.set("spark.cores.max", "15").set("spark.blockManager.port", "10025")
+//				.set("spark.driver.blockManager.port", "10026").set("spark.driver.port", "10027")
+//				.set("spark.shuffle.service.enabled", "false").set("spark.dynamicAllocation.enabled", "false");
 		;
-		// new SparkConf().setMaster("local[*]").setAppName("Final Graph");
-		// .set("spark.history.fs.logDirectory", "file:///D:/spark-logs")
-		// .set("spark.eventLog.dir",
-		// "file:///D:/spark-logs").set("spark.eventLog.enabled", "true");
+		SparkConf config = new SparkConf().setMaster("local[*]").setAppName("Graph");
 
 		try (JavaSparkContext jscontext = new JavaSparkContext(config)) {
-			
+
 			System.setProperty("java.util.Arrays.useLegacyMergeSort", "true");
 
 			JavaRDD<String> BoundaryVertexRDD = jscontext.parallelize(boundaryVerticesList);
 			JavaRDD<cEdge> BoundaryEdgeRDD = jscontext.parallelize(BoundaryEdge);
+
+			long initialTime = System.currentTimeMillis();
+			long FinalTime = 0l;
+			long currentTime = 0l;
+			long totalTime = 0l;
 
 //			BoundaryVertexRDD.collect().forEach(x -> System.out.print(x + " "));
 //			System.out.println(" ");
@@ -319,6 +327,9 @@ public class GraphNetworkDefault {
 
 			// toCreateSubgraphRDD.foreach(x -> System.out.println(x));
 
+			Stopwatch st = new Stopwatch();
+			st.start();
+
 			toCreateSubgraphRDD.foreachPartition(
 					new VoidFunction<Iterator<Tuple2<Object, Iterable<Tuple4<Object, Object, Double, ArrayList<RoadObject>>>>>>() {
 
@@ -327,6 +338,7 @@ public class GraphNetworkDefault {
 						 */
 						private static final long serialVersionUID = 1L;
 						List<Map<Integer, Integer>> NNListMap = new ArrayList<>();
+						List<Tuple3<Integer, Integer, Double>> nnList = new ArrayList<>();
 						// CoreGraph subGraph1 = new CoreGraph();
 
 						@Override
@@ -398,16 +410,25 @@ public class GraphNetworkDefault {
 									}
 
 								}
-								ANNNaive ann0 = new ANNNaive();
-								Map<Integer, Integer> result = ann0.compute(subGraph0, true);
-								NNListMap.add(result);
+								straightForwardANN sn = new straightForwardANN();
+								nnList = sn.call(subGraph0, true);
+
+//								ANNNaive ann0 = new ANNNaive();
+//								Map<Integer, Integer> result = ann0.compute(subGraph0, true);
+//								NNListMap.add(result);
+//								JavaRDD<Tuple3<Integer, Integer, Double>> NearestNeighborResult = jscontext
+//										.parallelize(nnList);
+//								NearestNeighborResult.saveAsTextFile("/SparkANN/Result");
 
 							}
-
-							System.out.println(NNListMap);
+							System.out.println(nnList);
 
 						}
 					});
+
+			st.stop();
+
+			System.out.print("Elapsed Time in Minute: " + st.elapsedMillis());
 
 			jscontext.close();
 
@@ -526,6 +547,65 @@ public class GraphNetworkDefault {
 		Tuple2<Integer, Integer> NNs = null;
 
 		return NNs;
+	}
+
+	static class straightForwardANN extends ANNNaive
+			implements Function2<CoreGraph, Boolean, List<Tuple3<Integer, Integer, Double>>>, Serializable {
+
+		@Override
+		public List<Tuple3<Integer, Integer, Double>> call(CoreGraph cg, Boolean queryType) throws Exception {
+			// TODO Auto-generated method stub
+			int edgeCounter = 0;
+			int objGlobalCounter = 0;
+			NearestNeighbor nn = new NearestNeighbor();
+			List<Tuple3<Integer, Integer, Double>> answerList = new ArrayList<>();
+			if (queryType) {
+				for (Integer edgeId : cg.getObjectsOnEdges().keySet()) {
+					edgeCounter++;
+
+					int objCounter = 0;
+					for (RoadObject trueObj : cg.getTrueObjectsOnEdgeSortedByDist(edgeId)) {
+						objCounter++;
+						objGlobalCounter++;
+//						
+						Map<RoadObject, Double> nearestFalseObjId = nn.getNearestFalseObjectToGivenObjOnMap(cg,
+								trueObj.getObjectId());// .getNearestFalseObjectIdToGivenObjOnMap(graph,
+						// trueObj.getObjectId());
+						// m_nearestNeighborSets.put(trueObj.getObjectId(), nearestFalseObjId);
+						for (RoadObject rO : nearestFalseObjId.keySet()) {
+
+							answerList.add(new Tuple3<Integer, Integer, Double>(trueObj.getObjectId(), rO.getObjectId(),
+									nearestFalseObjId.get(rO)));
+
+						}
+
+					}
+				}
+
+			} else {
+				for (Integer edgeId : cg.getObjectsOnEdges().keySet()) {
+					edgeCounter++;
+					int objCounter = 0;
+					for (RoadObject falseObj : cg.getFalseObjectsOnEdgeSortedByDist(edgeId)) {
+						objCounter++;
+						objGlobalCounter++;
+						Map<RoadObject, Double> nearestTrueObjId = nn.getNearestTrueObjectToGivenObjOnMap(cg,
+								falseObj.getObjectId());// .getNearestFalseObjectIdToGivenObjOnMap(graph,
+						// trueObj.getObjectId());
+						// m_nearestNeighborSets.put(trueObj.getObjectId(), nearestFalseObjId);
+						for (RoadObject rO : nearestTrueObjId.keySet()) {
+
+							answerList.add(new Tuple3<Integer, Integer, Double>(falseObj.getObjectId(),
+									rO.getObjectId(), nearestTrueObjId.get(rO)));
+
+						}
+					}
+				}
+			}
+
+			return answerList;
+		}
+
 	}
 
 	/**
