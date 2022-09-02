@@ -263,6 +263,11 @@ public class GraphNetworkDefault {
 			JavaRDD<List<Tuple3<Integer, Integer, Double>>> pathRDD = jscontext.parallelize(shortestPathList)
 					.map(new Function<List<Path>, List<Tuple3<Integer, Integer, Double>>>() {
 
+						/**
+						 * 
+						 */
+						private static final long serialVersionUID = 1L;
+
 						@Override
 						public List<Tuple3<Integer, Integer, Double>> call(List<Path> shortestPathList)
 								throws Exception {
@@ -352,9 +357,6 @@ public class GraphNetworkDefault {
 					.groupByKey().partitionBy(new CustomPartitioner(CustomPartitionSize));
 
 			// toCreateSubgraphRDD.foreach(x -> System.out.println(x));
-
-//			Stopwatch st = new Stopwatch();
-//			st.start();
 
 			toCreateSubgraphRDD.foreachPartition(
 					new VoidFunction<Iterator<Tuple2<Object, Iterable<Tuple4<Object, Object, Double, ArrayList<RoadObject>>>>>>() {
