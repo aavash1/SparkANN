@@ -306,7 +306,9 @@ public class GraphNetworkDefault {
 			 **/
 
 			CoreGraph embeddedGraph = createEmbNetwork(cGraph, pathRDD, BoundaryEdge, boundaryPairVertices);
-			embeddedGraph.printEdgesInfo();
+//			embeddedGraph.printEdgesInfo();
+			
+			
 
 			/**
 			 * Once the graph is created: 1) Combine the GraphRDD with RoadObjectPairRDD,
