@@ -308,8 +308,8 @@ public class GraphNetworkDefault {
 			CoreGraph embeddedGraph = createEmbNetwork(cGraph, pathRDD, BoundaryEdge, boundaryPairVertices);
 //			embeddedGraph.printEdgesInfo();
 
-			for (Node nodeId : embeddedGraph.getNodesWithInfo()) {
-				System.out.println(nodeId);
+			for(cEdge edge:embeddedGraph.getEdgesWithInfo()) {
+				cGraph.getAllObjectsIdOnGivenEdge(cGraph.getEdgeId(edge.getStartNodeId(), edge.getEndNodeId()));
 			}
 
 			/**
