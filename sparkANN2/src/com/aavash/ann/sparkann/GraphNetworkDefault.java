@@ -18,6 +18,7 @@ import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.api.java.function.PairFlatMapFunction;
+import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.api.java.function.VoidFunction;
 
 import com.aavash.ann.sparkann.algorithm.ANNNaive;
@@ -187,11 +188,15 @@ public class GraphNetworkDefault {
 			}
 		}
 
-//		System.out.println(boundaryPairVertices);
+		System.out.println(boundaryPairVertices);
+
+		for (cEdge boundaryVert : BoundaryEdge) {
+			System.out.println(boundaryVert);
+		}
 //		System.out.println(BoundaryEdge);
 //		BoundaryEdge.forEach(
 //				x -> System.out.println(x.getEdgeId() + " src: " + x.getStartNodeId() + " dest: " + x.getEndNodeId()));
-		System.out.println(stringBoundaryVertices);
+//		System.out.println(stringBoundaryVertices);
 
 		/**
 		 * |Partition_Index|Source_vertex|Destination_vertex|Edge_Length|ArrayList<Road_Object>|
@@ -226,16 +231,7 @@ public class GraphNetworkDefault {
 		 * the vertex that are in shortest path list in a separate ArrayList
 		 */
 		ArrayList<List<Path>> shortestPathList = runSPFAlgo(yGraph, stringBoundaryVertices, CustomPartitionSize);
-		// ArrayList<List<Path>> shortestPathList1 = runSP(yGraph, boundaryVerticesList,
-		// CustomPartitionSize);
-		// System.out.println("Verify the shortest-paths");
-//		for (List<Path> p1 : shortestPathList) {
-//			for(int i=0;i<p1.size();i++) {
-//				p1.get(i).getEdges().getFirst().get;
-//			}
-//		}
 
-		// List<Integer> shortestpathsUnion = unifyAllShortestPaths(shortestPathList);
 		System.out.println();
 
 		/**
@@ -260,9 +256,9 @@ public class GraphNetworkDefault {
 			JavaRDD<String> BoundaryVertexRDD = jscontext.parallelize(boundaryVerticesList);
 			JavaRDD<cEdge> BoundaryEdgeRDD = jscontext.parallelize(BoundaryEdge);
 
-			BoundaryVertexRDD.foreach(x -> System.out.println(x));
-
-			BoundaryEdgeRDD.foreach(x -> System.out.println(x));
+//			BoundaryEdgeRDD.foreach(
+//					x -> System.out.println(x.getStartNodeId() + "-->" + x.getEndNodeId() + " : " + x.getLength()));
+//			System.out.println(" ");
 
 			JavaRDD<List<Tuple3<Integer, Integer, Double>>> pathRDD = jscontext.parallelize(shortestPathList)
 					.map(new Function<List<Path>, List<Tuple3<Integer, Integer, Double>>>() {
@@ -296,18 +292,6 @@ public class GraphNetworkDefault {
 
 					});
 
-			pathRDD.foreach(x -> System.out.println(x));
-
-			long initialTime = System.currentTimeMillis();
-			long FinalTime = 0l;
-			long currentTime = 0l;
-			long totalTime = 0l;
-
-//			BoundaryVertexRDD.collect().forEach(x -> System.out.print(x + " "));
-//			System.out.println(" ");
-//			BoundaryEdgeRDD.collect().forEach(x -> System.out.print(x.getEdgeId() + " "));
-//			System.out.println(" ");
-
 			/**
 			 * Creating Embedded Network Graph: 1) Initially create a Virtual Vertex 2)
 			 * Create a Embedded graph connecting VIRTUAL NODE to every other boundary Nodes
@@ -315,6 +299,9 @@ public class GraphNetworkDefault {
 			 * BOUNDARY NODES 5) Calculate the distance to the nearest node and store it in
 			 * a array Tuple2<Object,Map<Object,Double>> VirtualGraph
 			 **/
+
+			CoreGraph embeddedGraph = createEmbNetwork(cGraph, pathRDD, BoundaryEdge, boundaryPairVertices);
+			embeddedGraph.printEdgesInfo();
 
 			/**
 			 * Once the graph is created: 1) Combine the GraphRDD with RoadObjectPairRDD,
@@ -460,7 +447,7 @@ public class GraphNetworkDefault {
 //								NearestNeighborResult.saveAsTextFile("/SparkANN/Result");
 
 							}
-							System.out.println(nnList);
+							// System.out.println(nnList);
 
 						}
 					});
@@ -487,6 +474,37 @@ public class GraphNetworkDefault {
 
 		return embeddedNetwork;
 
+	}
+
+	public static CoreGraph createEmbNetwork(CoreGraph cGraph, JavaRDD<List<Tuple3<Integer, Integer, Double>>> pathRDD,
+			ArrayList<cEdge> bordeEdge, Map<Object, Object> borderPairVertex) {
+		CoreGraph embeddedGraph = new CoreGraph();
+		int newEdgeId = Integer.MAX_VALUE;
+
+		for (cEdge edges : bordeEdge) {
+			embeddedGraph.addEdge(newEdgeId, edges.getStartNodeId(), edges.getEndNodeId(), edges.getLength());
+			newEdgeId--;
+		}
+
+		for (List<Tuple3<Integer, Integer, Double>> pathList : pathRDD.collect()) {
+			for (Tuple3<Integer, Integer, Double> path : pathList) {
+				newEdgeId = newEdgeId - 2;
+				int srcVertex = path._1();
+				int destVertex = path._2();
+				double edgeLength = path._3();
+
+				if (!bordeEdge.contains(cGraph.getEdgeId(srcVertex, destVertex))) {
+					if (borderPairVertex.get(srcVertex) == borderPairVertex.get(destVertex)) {
+						embeddedGraph.addEdge(newEdgeId, srcVertex, destVertex, edgeLength);
+						newEdgeId--;
+					}
+				}
+
+			}
+
+		}
+
+		return embeddedGraph;
 	}
 
 	public static ArrayList<List<Path>> runSPF(YenGraph yenG, HashMap<Integer, ArrayList<String>> boundaries,
@@ -576,26 +594,26 @@ public class GraphNetworkDefault {
 		return spf;
 	}
 
-	public static LinkedList<Integer> unifyAllShortestPaths(ArrayList<List<Path>> spfList) {
-		LinkedList<Integer> shortestpathsUnion = new LinkedList<Integer>();
-
-		for (List<Path> p : spfList) {
-			for (int i = 0; i < p.size(); i++) {
-				for (int j = 0; j < p.get(i).getNodes().size(); j++) {
-					int vertex = Integer.parseInt(p.get(i).getNodes().get(j));
-					if (!shortestpathsUnion.contains(vertex)) {
-
-						shortestpathsUnion.add(vertex);
-						// System.out.println("added " + vertex);
-					}
-
-				}
-				// System.out.println(" ");
-			}
-		}
-
-		return shortestpathsUnion;
-	}
+//	public static LinkedList<Integer> unifyAllShortestPaths(ArrayList<List<Path>> spfList) {
+//		LinkedList<Integer> shortestpathsUnion = new LinkedList<Integer>();
+//
+//		for (List<Path> p : spfList) {
+//			for (int i = 0; i < p.size(); i++) {
+//				for (int j = 0; j < p.get(i).getNodes().size(); j++) {
+//					int vertex = Integer.parseInt(p.get(i).getNodes().get(j));
+//					if (!shortestpathsUnion.contains(vertex)) {
+//
+//						shortestpathsUnion.add(vertex);
+//						// System.out.println("added " + vertex);
+//					}
+//
+//				}
+//				// System.out.println(" ");
+//			}
+//		}
+//
+//		return shortestpathsUnion;
+//	}
 
 	public static CoreGraph readSPFreturnGraph(ArrayList<List<Path>> shortestPathList) {
 
@@ -615,14 +633,19 @@ public class GraphNetworkDefault {
 
 	}
 
-	public static Tuple2<Integer, Integer> getNearestDataObject() {
-		Tuple2<Integer, Integer> NNs = null;
-
-		return NNs;
-	}
+//	public static Tuple2<Integer, Integer> getNearestDataObject() {
+//		Tuple2<Integer, Integer> NNs = null;
+//
+//		return NNs;
+//	}
 
 	static class straightForwardANN extends ANNNaive
 			implements Function2<CoreGraph, Boolean, List<Tuple3<Integer, Integer, Double>>>, Serializable {
+
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = 1L;
 
 		@Override
 		public List<Tuple3<Integer, Integer, Double>> call(CoreGraph cg, Boolean queryType) throws Exception {
