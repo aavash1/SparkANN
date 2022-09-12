@@ -569,6 +569,7 @@ public class RandomObjectGenerator {
 			}
 			double edgeLength = graph.getEdgeDistance(randomEdgeId);
 			double distFromStartNode = getRandDoubleBetRange2(0, edgeLength);
+			
 			if (!acceptedDistancesOnEdge.get(randomEdgeId).contains(distFromStartNode)) {
 				object.setDistanceFromStartNode(distFromStartNode);
 			} else {
@@ -580,6 +581,8 @@ public class RandomObjectGenerator {
 				testVar = boolValues.poll();
 				object.setType(testVar);
 			}
+			double rating=getRandDoubleBetRange2(1, 10);
+			object.setRating(rating);
 			if (graph.addObjectOnEdge(randomEdgeId, object)) {
 				objCounter++;
 				acceptedDistancesOnEdge.get(randomEdgeId).add(distFromStartNode);
@@ -1856,6 +1859,8 @@ public class RandomObjectGenerator {
 					continue;
 				}
 			}
+			double rating=getRandDoubleBetRange2(1, 10);
+			roadObj.setRating(rating);
 
 			if (graph.addObjectOnEdge(edgeId, roadObj)) {
 				objectCounter++;
@@ -1982,6 +1987,9 @@ public class RandomObjectGenerator {
 				testVar = boolValues.poll();
 				object.setType(testVar);
 			}
+			double rating=getRandDoubleBetRange2(1, 10);
+			object.setRating(rating);
+			
 			if (graph.addObjectOnEdge(randomEdgeId, object)) {
 				objectCounter++;
 				acceptedDistancesOnEdge.get(randomEdgeId).add(distFromStartNode);

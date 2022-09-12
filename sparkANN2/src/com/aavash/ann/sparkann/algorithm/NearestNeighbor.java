@@ -346,6 +346,7 @@ public class NearestNeighbor {
 		RoadObject sourceObj = m_graph.getDatasetRoadObject(sourceObjId);
 		int sourceStartNodeId = m_graph.getStartNodeIdOfEdge(sourceEdgeId);
 		int sourceEndNodeId = m_graph.getEndNodeIdOfEdge(sourceEdgeId);
+		
 
 		// foundObjectsWithSortedDistance: Map<Total distance, Object Id>, Total
 		// distance from query object to the found object

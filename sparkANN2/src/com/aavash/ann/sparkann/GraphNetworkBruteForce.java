@@ -41,7 +41,7 @@ import scala.Tuple4;
 import scala.Tuple5;
 import scala.reflect.ClassTag;
 
-public class GraphNetworkDefault {
+public class GraphNetworkBruteForce {
 
 	public static void main(String[] args) throws Exception {
 		System.setProperty("java.util.Arrays.useLegacyMergeSort", "true");
@@ -55,19 +55,19 @@ public class GraphNetworkDefault {
 		 * 1 Pass the path for loading the datasets 1.1 Dataset for graph containing
 		 * nodes and edges
 		 */
-		String nodeDatasetFile = "Dataset/TinygraphNodes.txt";
-		String edgeDataSetFile = "Dataset/TinyGraphEdge.txt";
+		//String nodeDatasetFile = "Dataset/TinygraphNodes.txt";
+		//String edgeDataSetFile = "Dataset/TinyGraphEdge.txt";
 
 		// TinyGraph
-		// String nodeDatasetFile = "Dataset/PCManualGraphNodes.txt";
-		// String edgeDataSetFile = "Dataset/PCManualGraphEdges.txt";
+		 String nodeDatasetFile = "Dataset/PCManualGraphNodes.txt";
+		 String edgeDataSetFile = "Dataset/PCManualGraphEdges.txt";
 
 		/**
 		 * 1.2 Dataset for METIS graph and Partition Output
 		 */
 		String metisInputGraph = "Metisgraph/ManualGraph.txt";
-		String metisPartitionOutputFile = "PartitionDataset/tg_part.txt";
-		// String metisPartitionOutputFile = "PartitionDataset/PCmanualGr_part2.txt";
+		//String metisPartitionOutputFile = "PartitionDataset/tg_part.txt";
+		 String metisPartitionOutputFile = "PartitionDataset/PCmanualGr_part2.txt";
 
 		/**
 		 * Load Graph using CoreGraph Framework, YenGraph for calculating shortest paths
@@ -80,7 +80,7 @@ public class GraphNetworkDefault {
 		 * Create Vertices List from the nodeDataset
 		 */
 		ArrayList<Node> nodesList = UtilsManagement.readTxtNodeFile(nodeDatasetFile);
-		cGraph.setNodesWithInfo(nodesList);
+		//cGraph.setNodesWithInfo(nodesList);
 		// cGraph.printEdgesInfo();
 
 		/**
@@ -93,9 +93,9 @@ public class GraphNetworkDefault {
 		 */
 		// RandomObjectGenerator.generateUniformRandomObjectsOnMap(cGraph, 100, 500);
 
-		String PCManualObject = "Dataset/manualobject/ManualObjectOnTinyGraph.txt";
+		//String PCManualObject = "Dataset/manualobject/ManualObjectOnTinyGraph.txt";
 
-		// String PCManualObject = "Dataset/manualobject/ManualObjectsOnRoad.txt";
+		 String PCManualObject = "Dataset/manualobject/ManualObjectsOnRoad.txt";
 		UtilsManagement.readRoadObjectTxtFile1(cGraph, PCManualObject);
 		// RandomObjectGenerator.zgenerateCCDistribution(cGraph, 2, 1, 20000, 20000);
 
@@ -120,8 +120,8 @@ public class GraphNetworkDefault {
 		}
 
 		// Depending upon the size of cluster, CustomPartitionSize can be changed
-//		int CustomPartitionSize = 3;
-		int CustomPartitionSize = 2;
+		int CustomPartitionSize = 3;
+//		int CustomPartitionSize = 2;
 
 		/**
 		 * Selecting the Boundaries after graph partitions
@@ -188,11 +188,11 @@ public class GraphNetworkDefault {
 			}
 		}
 
-		System.out.println(boundaryPairVertices);
-
-		for (cEdge boundaryVert : BoundaryEdge) {
-			System.out.println(boundaryVert);
-		}
+//		System.out.println(boundaryPairVertices);
+//
+//		for (cEdge boundaryVert : BoundaryEdge) {
+//			System.out.println(boundaryVert);
+//		}
 //		System.out.println(BoundaryEdge);
 //		BoundaryEdge.forEach(
 //				x -> System.out.println(x.getEdgeId() + " src: " + x.getStartNodeId() + " dest: " + x.getEndNodeId()));
@@ -307,10 +307,16 @@ public class GraphNetworkDefault {
 
 			CoreGraph embeddedGraph = createEmbNetwork(cGraph, pathRDD, BoundaryEdge, boundaryPairVertices);
 //			embeddedGraph.printEdgesInfo();
-
-			for(cEdge edge:embeddedGraph.getEdgesWithInfo()) {
-				cGraph.getAllObjectsIdOnGivenEdge(cGraph.getEdgeId(edge.getStartNodeId(), edge.getEndNodeId()));
-			}
+//
+//			for (cEdge edge : embeddedGraph.getEdgesWithInfo()) {
+//				int edgeId = cGraph.getEdgeId(edge.getStartNodeId(), edge.getEndNodeId());
+//
+//				if (edgeId > 0) {
+//					System.out.println(edgeId);
+//					System.out.println(cGraph.getAllObjectsIdOnGivenEdge(edgeId));
+//				}
+//
+//			}
 
 			/**
 			 * Once the graph is created: 1) Combine the GraphRDD with RoadObjectPairRDD,
@@ -453,7 +459,7 @@ public class GraphNetworkDefault {
 //								NearestNeighborResult.saveAsTextFile("/SparkANN/Result");
 
 							}
-							// System.out.println(nnList);
+							 System.out.println(nnList);
 
 						}
 					});
