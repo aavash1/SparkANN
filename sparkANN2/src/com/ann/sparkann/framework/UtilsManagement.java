@@ -216,6 +216,18 @@ public class UtilsManagement {
 					v.setLongitude(Double.parseDouble(record[1]));
 					v.setLatitude(Double.parseDouble(record[2]));
 					listOfNodes.add(v);
+				} else if (record.length == 4) {
+					if (!removedBOM && record[0] != "0") {
+
+						// record[0] = String.valueOf(0);
+						removedBOM = true;
+
+					}
+					Node v = new Node();
+					v.setNodeId(Integer.parseInt(record[1]));
+					v.setLongitude(Double.parseDouble(record[2]));
+					v.setLatitude(Double.parseDouble(record[3]));
+					listOfNodes.add(v);
 				}
 
 			}
@@ -356,6 +368,7 @@ public class UtilsManagement {
 	public static CoreGraph readEdgeTxtFileReturnGraph(String txtFileName) {
 		CoreGraph graph = new CoreGraph();
 
+		int counter = 0;
 		String line = "";
 		boolean removedBOM = false;
 		try (BufferedReader br = new BufferedReader(new FileReader(txtFileName))) {
@@ -369,9 +382,18 @@ public class UtilsManagement {
 						removedBOM = true;
 
 					}
-					graph.addEdge(Integer.parseInt(record[0]), Integer.parseInt(record[1]), Integer.parseInt(record[2]),
-							Double.parseDouble(record[3]));
+
+					if (record[0].contains("a")) {
+						graph.addEdge(counter, Integer.parseInt(record[1]), Integer.parseInt(record[2]),
+								Double.parseDouble(record[3]));
+						counter++;
+					} else {
+						graph.addEdge(Integer.parseInt(record[0]), Integer.parseInt(record[1]),
+								Integer.parseInt(record[2]), Double.parseDouble(record[3]));
+					}
+
 				}
+
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -930,9 +952,9 @@ public class UtilsManagement {
 			FileWriter outputFile = new FileWriter(nodeFileName, true);
 			// Remove the 1st Integer
 			for (Node node : nodelist) {
-				System.out.println("Node Id: " + node.getNodeId());
+				//System.out.println("Node Id: " + node.getNodeId());
 				int nodeIdAfterIncrement = node.getNodeId() + 1;
-				System.out.println("Node Id: " + node.getNodeId() + " changed to " + nodeIdAfterIncrement);
+				//System.out.println("Node Id: " + node.getNodeId() + " changed to " + nodeIdAfterIncrement);
 				outputFile.write(String.format(
 						nodeIdAfterIncrement + txtSplitBy + node.getLongitude() + txtSplitBy + node.getLatitude()));
 				outputFile.write(System.lineSeparator());
@@ -953,9 +975,9 @@ public class UtilsManagement {
 			FileWriter outputFile = new FileWriter(nodeFileName, true);
 			// Remove the 1st Integer
 			for (Node node : nodelist) {
-				System.out.println("Node Id: " + node.getNodeId());
+				//System.out.println("Node Id: " + node.getNodeId());
 				int nodeIdAfterIncrement = node.getNodeId() + 1;
-				System.out.println("Node Id: " + node.getNodeId() + " changed to " + nodeIdAfterIncrement);
+				//System.out.println("Node Id: " + node.getNodeId() + " changed to " + nodeIdAfterIncrement);
 				outputFile.write(String.format(
 						nodeIdAfterIncrement + csvSplitBy + node.getLongitude() + csvSplitBy + node.getLatitude()));
 				outputFile.write(System.lineSeparator());
@@ -979,9 +1001,9 @@ public class UtilsManagement {
 
 			// Remove the 1st Integer
 			for (cEdge EdgeId : edgeList) {
-				System.out.println("Initial NodeId: " + EdgeId.getEdgeId());
+				//System.out.println("Initial NodeId: " + EdgeId.getEdgeId());
 				int increaseEdgeId = EdgeId.getEdgeId() + 1;
-				System.out.println("After Increment: " + increaseEdgeId);
+				//System.out.println("After Increment: " + increaseEdgeId);
 				int incrementStartNode = EdgeId.getStartNodeId() + 1;
 				int incrementEndNode = EdgeId.getEndNodeId() + 1;
 				outputFile.write(String.format(increaseEdgeId + txtSplitBy + incrementStartNode + txtSplitBy
@@ -1061,6 +1083,98 @@ public class UtilsManagement {
 			ex.printStackTrace();
 		}
 	}
+
+	public static void convertInputGraphFileToMETISGraph(CoreGraph graph,
+			Map<Integer, Map<Integer, Double>> unsortedNodeAdjacencies, String graphFileName) {
+		System.err.println("Conversion started...");
+		Map<Integer, Map<Integer, Double>> nodeAdjacencies = new TreeMap<Integer, Map<Integer, Double>>(
+				unsortedNodeAdjacencies);
+		try {
+			FileWriter outputFile = new FileWriter(graphFileName, true);
+
+			outputFile.write(String.format(graph.getNumberOfNodes() + txtSplitBy + graph.getEdgesWithInfo().size()));
+			outputFile.write(System.lineSeparator());
+			// Remove the 1st Integer
+			for (Integer nodeId : nodeAdjacencies.keySet()) {
+				Map<Integer, Double> neighborEdgeId = nodeAdjacencies.get(nodeId);
+				for (Integer adjacentNodeId : neighborEdgeId.keySet()) {
+
+					// outputFile.write(String.format(adjacentNodeId + txtSplitBy +
+					// neighborEdgeId.get(adjacentNodeId)));
+					outputFile.write(String.format(adjacentNodeId + txtSplitBy));
+					// outputFile.write(String.format(txtSplitByThree));
+
+				}
+				outputFile.write(System.lineSeparator());
+
+			}
+
+			outputFile.close();
+			System.err.println("Conversion completed Successfully.");
+		} catch (IOException ex) {
+			ex.printStackTrace();
+		}
+	}
+
+	/**
+	 * This method first takes the graph and convert its adjacency to array Then the
+	 * array will be used to create metis output
+	 * 
+	 * @param csvFileName
+	 * @return
+	 */
+	public static void convertDatasetToMETISFormat(String outputFileName, ArrayList<int[]> rowList, int nodeSize,
+			int edgeSize) {
+		String txtSplitBy = " ";
+		try {
+			FileWriter outputFile = new FileWriter(outputFileName, true);
+
+			outputFile.write(String.format(nodeSize + txtSplitBy + edgeSize));
+			outputFile.write(System.lineSeparator());
+			// Remove the 1st Integer
+			for (int[] record : rowList) {
+				for (int i = 0; i < record.length; i++) {
+					outputFile.write(String.format(record[i] + txtSplitBy));
+				}
+				outputFile.write(System.lineSeparator());
+
+			}
+
+			outputFile.close();
+			System.err.println("Conversion completed Successfully.");
+		} catch (IOException ex) {
+			ex.printStackTrace();
+		}
+
+	}
+
+	public static ArrayList<int[]> createAdjArrayForMETISConversion(CoreGraph cGraph) {
+		ArrayList<int[]> rowList = new ArrayList<>();
+		try {
+			for (Map.Entry<Integer, Map<Integer, Double>> srcEntry : cGraph.getAdjancencyMap().entrySet()) {
+				int lcount = 0;
+				Integer src = srcEntry.getKey();
+				int mapSize = cGraph.getAdjancencyMap().get(src).entrySet().size();
+				int[] rows = new int[mapSize];
+				//rows[lcount] = src;
+				//lcount++;
+
+				for (Map.Entry<Integer, Double> dstEntry : cGraph.getAdjancencyMap().get(src).entrySet()) {
+					Integer dest = dstEntry.getKey();
+					rows[lcount] = dest;
+					lcount++;
+
+				}
+				rowList.add(rows);
+			}
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+		return rowList;
+
+	}
+
+	// -- these 2 method ends here-----
 
 	public static Map<Integer, LinkedList<Integer>> readNodeClustersFile(String csvFileName) {
 		Map<Integer, LinkedList<Integer>> nodeClusters = new HashMap<Integer, LinkedList<Integer>>();

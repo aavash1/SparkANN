@@ -191,7 +191,7 @@ public class GraphNetworkSCL {
 			}
 		}
 
-		//System.out.println(boundaryPairVertices);
+		// System.out.println(boundaryPairVertices);
 
 //		for (cEdge boundaryVert : BoundaryEdge) {
 //			System.out.println(boundaryVert);
@@ -309,7 +309,7 @@ public class GraphNetworkSCL {
 			 **/
 
 			CoreGraph embeddedGraph = createEmbNetwork(cGraph, pathRDD, BoundaryEdge, boundaryPairVertices);
-			//embeddedGraph.printEdgesInfo();
+			embeddedGraph.printEdgesInfo();
 
 //			for (cEdge edge : embeddedGraph.getEdgesWithInfo()) {
 //				int edgeId = cGraph.getEdgeId(edge.getStartNodeId(), edge.getEndNodeId());
@@ -462,7 +462,7 @@ public class GraphNetworkSCL {
 //								NearestNeighborResult.saveAsTextFile("/SparkANN/Result");
 
 							}
-							 System.out.println(nnList);
+							System.out.println(nnList);
 
 						}
 					});
@@ -492,11 +492,14 @@ public class GraphNetworkSCL {
 	}
 
 	public static CoreGraph createEmbNetwork(CoreGraph cGraph, JavaRDD<List<Tuple3<Integer, Integer, Double>>> pathRDD,
-			ArrayList<cEdge> bordeEdge, Map<Object, Object> borderPairVertex) {
+			ArrayList<cEdge> borderEdge, Map<Object, Object> borderPairVertex) {
 		CoreGraph embeddedGraph = new CoreGraph();
+		CoreGraph augmentedGraph=new CoreGraph();
+		
 		int newEdgeId = Integer.MAX_VALUE;
+		int virtualVertex = Integer.MAX_VALUE;
 
-		for (cEdge edges : bordeEdge) {
+		for (cEdge edges : borderEdge) {
 			embeddedGraph.addEdge(newEdgeId, edges.getStartNodeId(), edges.getEndNodeId(), edges.getLength());
 			newEdgeId--;
 		}
@@ -508,7 +511,7 @@ public class GraphNetworkSCL {
 				int destVertex = path._2();
 				double edgeLength = path._3();
 
-				if (!bordeEdge.contains(cGraph.getEdgeId(srcVertex, destVertex))) {
+				if (!borderEdge.contains(cGraph.getEdgeId(srcVertex, destVertex))) {
 					if (borderPairVertex.get(srcVertex) == borderPairVertex.get(destVertex)) {
 						embeddedGraph.addEdge(newEdgeId, srcVertex, destVertex, edgeLength);
 						newEdgeId--;
@@ -518,6 +521,8 @@ public class GraphNetworkSCL {
 			}
 
 		}
+		
+		
 
 		return embeddedGraph;
 	}

@@ -226,6 +226,11 @@ public class UtilitiesMgmt {
 
 	}
 
+	public static void writeMETISoutputFile(CoreGraph graph, String outputFileName, int NumberOfEdge,
+			int NumberOfVertices) {
+
+	}
+
 	public static void writeHGREdgeFile(Graph<String, Double> graph, int NumberOfEdge, int NumberOfVertices,
 			String inputFileName, String outputFileName, boolean fmt) {
 		String line = "";
