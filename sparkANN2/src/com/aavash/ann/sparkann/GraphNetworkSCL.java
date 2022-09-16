@@ -17,6 +17,7 @@ import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.Function2;
+import org.apache.spark.api.java.function.Function3;
 import org.apache.spark.api.java.function.PairFlatMapFunction;
 import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.api.java.function.VoidFunction;
@@ -452,8 +453,14 @@ public class GraphNetworkSCL {
 									}
 
 								}
+								ClusteringNodes clusteringNodes = new ClusteringNodes();
+								Map<Integer, LinkedList<Integer>> nodeCluster = clusteringNodes.cluster(subGraph0);
+
 								clusteredANN can = new clusteredANN();
-								nnList = can.call(subGraph0, true);
+								nnList = can.call(subGraph0, true, nodeCluster);
+
+								// clusteredANN can = new clusteredANN();
+								// nnList = can.call(subGraph0, true);
 
 //								ANNNaive ann0 = new ANNNaive();
 //								Map<Integer, Integer> result = ann0.compute(subGraph0, true);
@@ -658,20 +665,28 @@ public class GraphNetworkSCL {
 //		return NNs;
 //	}
 
-	static class clusteredANN extends ANNNaive
-			implements Function2<CoreGraph, Boolean, List<Tuple3<Integer, Integer, Double>>>, Serializable {
+	static class clusteredANN extends ANNClusteredOptimizedWithHeuristic implements
+			Function3<CoreGraph, Boolean, Map<Integer, LinkedList<Integer>>, List<Tuple3<Integer, Integer, Double>>>,
+			Serializable {
+
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = -2583115030602356667L;
+
+		private Map<Integer, LinkedList<Integer>> m_objectIdClusters;
+		private Map<Integer, LinkedList<Integer>> m_nodeIdClusters;
+		private int sizeOfNodeClusters, sizeOfObjectClusters;
 
 		@Override
-		public List<Tuple3<Integer, Integer, Double>> call(CoreGraph cg, Boolean queryType) throws Exception {
-
-			ClusteringNodes clusteringNodes = new ClusteringNodes();
+		public List<Tuple3<Integer, Integer, Double>> call(CoreGraph cg, Boolean queryType,
+				Map<Integer, LinkedList<Integer>> nodeClusters) throws Exception {
 
 			ClusteringRoadObjects clusteringObjects = new ClusteringRoadObjects();
 			List<Tuple3<Integer, Integer, Double>> answerList = new ArrayList<>();
 
-			Map<Integer, LinkedList<Integer>> nodeClusters = clusteringNodes.cluster(cg);
-			Map<Integer, LinkedList<Integer>> objectClusters = clusteringObjects.clusterWithIndex4(cg, nodeClusters,
-					queryType);
+			m_nodeIdClusters = nodeClusters;
+			m_objectIdClusters = clusteringObjects.clusterWithIndex(cg, nodeClusters, queryType);
 
 			NearestNeighbor nn = new NearestNeighbor();
 			int boundaryStartQueryObj, boundaryEndQueryObj;
@@ -681,14 +696,14 @@ public class GraphNetworkSCL {
 
 			if (queryType) {
 				// Iterate through boundary objects of object clusters
-				for (Integer objectClusterIndex : objectClusters.keySet()) {
+				for (Integer objectClusterIndex : m_objectIdClusters.keySet()) {
 					objectClusterCounter++;
-					if (!objectClusters.get(objectClusterIndex).isEmpty()) {
-						objectCounter += objectClusters.get(objectClusterIndex).size();
-						if (objectClusters.get(objectClusterIndex).size() == 1) {
+					if (!m_objectIdClusters.get(objectClusterIndex).isEmpty()) {
+						objectCounter += m_objectIdClusters.get(objectClusterIndex).size();
+						if (m_objectIdClusters.get(objectClusterIndex).size() == 1) {
 
 							queriedObjCounter++;
-							int queryObj = objectClusters.get(objectClusterIndex).getFirst();
+							int queryObj = m_objectIdClusters.get(objectClusterIndex).getFirst();
 							Map<RoadObject, Double> nearestFalseObjId = nn.getNearestFalseObjectToGivenObjOnMap(cg,
 									queryObj);
 
@@ -699,7 +714,7 @@ public class GraphNetworkSCL {
 
 							}
 
-						} else if (objectClusters.get(objectClusterIndex).size() == 2) {
+						} else if (m_objectIdClusters.get(objectClusterIndex).size() == 2) {
 
 							int currentClusterIndex = clusteringObjects.getObjectClusterNodeClusterInfo()
 									.get(objectClusterIndex);
@@ -712,7 +727,7 @@ public class GraphNetworkSCL {
 
 								if (objectList.get(objectList.size() - 1).getType() == true) {
 									queriedObjCounter++;
-									int requiredQueryObject = objectClusters.get(objectClusterIndex).getLast();
+									int requiredQueryObject = m_objectIdClusters.get(objectClusterIndex).getLast();
 
 									Map<RoadObject, Double> nearestFalseObjectForRequiredQueryObject = nn
 											.getNearestFalseObjectToGivenObjOnMap(cg, requiredQueryObject);
@@ -739,7 +754,7 @@ public class GraphNetworkSCL {
 								if (objectList.get(objectList.size() - 1).getType() == true) {
 
 									queriedObjCounter++;
-									int requiredQueryObject = objectClusters.get(objectClusterIndex).getFirst();
+									int requiredQueryObject = m_objectIdClusters.get(objectClusterIndex).getFirst();
 
 									Map<RoadObject, Double> nearestFalseObjectForRequiredQueryObject = nn
 											.getNearestFalseObjectToGivenObjOnMap(cg, requiredQueryObject);
@@ -758,8 +773,8 @@ public class GraphNetworkSCL {
 //											nearestFalseObjectForRequiredQueryObject);
 								} else {
 									queriedObjCounter += 2;
-									boundaryStartQueryObj = objectClusters.get(objectClusterIndex).getFirst();
-									boundaryEndQueryObj = objectClusters.get(objectClusterIndex).getLast();
+									boundaryStartQueryObj = m_objectIdClusters.get(objectClusterIndex).getFirst();
+									boundaryEndQueryObj = m_objectIdClusters.get(objectClusterIndex).getLast();
 
 //									int nearestFalseObjForBeginingExit = nn
 //											.getNearestFalseObjectIdToGivenObjOnMap(cg, boundaryStartQueryObj);
@@ -791,8 +806,8 @@ public class GraphNetworkSCL {
 
 							} else {
 								queriedObjCounter += 2;
-								boundaryStartQueryObj = objectClusters.get(objectClusterIndex).getFirst();
-								boundaryEndQueryObj = objectClusters.get(objectClusterIndex).getLast();
+								boundaryStartQueryObj = m_objectIdClusters.get(objectClusterIndex).getFirst();
+								boundaryEndQueryObj = m_objectIdClusters.get(objectClusterIndex).getLast();
 
 								Map<RoadObject, Double> nearestFalseObjForBeginingExit = nn
 										.getNearestFalseObjectToGivenObjOnMap(cg, boundaryStartQueryObj);
@@ -848,12 +863,12 @@ public class GraphNetworkSCL {
 //									m_nearestNeighborSets.put(requiredQueryObject,
 //											nearestFalseObjectForRequiredQueryObject);
 
-									for (int k = 1; k < objectClusters.get(objectClusterIndex).size() - 1; k++) {
+									for (int k = 1; k < m_objectIdClusters.get(objectClusterIndex).size() - 1; k++) {
 
 										for (RoadObject rO : nearestFalseObjectForRequiredQueryObject.keySet()) {
 
 											answerList.add(new Tuple3<Integer, Integer, Double>(
-													objectClusters.get(objectClusterIndex).get(k), rO.getObjectId(),
+													m_objectIdClusters.get(objectClusterIndex).get(k), rO.getObjectId(),
 													nearestFalseObjectForRequiredQueryObject.get(rO)));
 
 										}
@@ -873,7 +888,7 @@ public class GraphNetworkSCL {
 								if (objectList.get(objectList.size() - 1).getType() == true) {
 
 									queriedObjCounter++;
-									int requiredQueryObject = objectClusters.get(objectClusterIndex).getFirst();
+									int requiredQueryObject = m_objectIdClusters.get(objectClusterIndex).getFirst();
 
 									Map<RoadObject, Double> nearestFalseObjectForRequiredQueryObject = nn
 											.getNearestFalseObjectToGivenObjOnMap(cg, requiredQueryObject);
@@ -890,12 +905,12 @@ public class GraphNetworkSCL {
 //									m_nearestNeighborSets.put(requiredQueryObject,
 //											nearestFalseObjectForRequiredQueryObject);
 
-									for (int k = 1; k < objectClusters.get(objectClusterIndex).size() - 1; k++) {
+									for (int k = 1; k < m_objectIdClusters.get(objectClusterIndex).size() - 1; k++) {
 
 										for (RoadObject rO : nearestFalseObjectForRequiredQueryObject.keySet()) {
 
 											answerList.add(new Tuple3<Integer, Integer, Double>(
-													objectClusters.get(objectClusterIndex).get(k), rO.getObjectId(),
+													m_objectIdClusters.get(objectClusterIndex).get(k), rO.getObjectId(),
 													nearestFalseObjectForRequiredQueryObject.get(rO)));
 
 										}
@@ -906,12 +921,12 @@ public class GraphNetworkSCL {
 
 //									m_nearestNeighborSets.put(requiredQueryObject,
 //											nearestFalseObjectForRequiredQueryObject);
-									for (int k = objectClusters.get(objectClusterIndex).size(); k <= 1; k--) {
+									for (int k = m_objectIdClusters.get(objectClusterIndex).size(); k <= 1; k--) {
 
 										for (RoadObject rO : nearestFalseObjectForRequiredQueryObject.keySet()) {
 
 											answerList.add(new Tuple3<Integer, Integer, Double>(
-													objectClusters.get(objectClusterIndex).get(k), rO.getObjectId(),
+													m_objectIdClusters.get(objectClusterIndex).get(k), rO.getObjectId(),
 													nearestFalseObjectForRequiredQueryObject.get(rO)));
 
 										}
@@ -920,8 +935,8 @@ public class GraphNetworkSCL {
 									}
 								} else {
 									queriedObjCounter += 2;
-									boundaryStartQueryObj = objectClusters.get(objectClusterIndex).getFirst();
-									boundaryEndQueryObj = objectClusters.get(objectClusterIndex).getLast();
+									boundaryStartQueryObj = m_objectIdClusters.get(objectClusterIndex).getFirst();
+									boundaryEndQueryObj = m_objectIdClusters.get(objectClusterIndex).getLast();
 
 									Map<RoadObject, Double> nearestFalseObjWithDistBoundaryStart = nn
 											.getNearestFalseObjectToGivenObjOnMap(cg, boundaryStartQueryObj);
@@ -958,15 +973,16 @@ public class GraphNetworkSCL {
 
 									// System.out.println("index:" + objectClusterIndex);
 
-									for (int i = objectClusters.get(objectClusterIndex).indexOf(boundaryStartQueryObj)
-											+ 1; i < objectClusters.get(objectClusterIndex).size() - 1; i++) {
+									for (int i = m_objectIdClusters.get(objectClusterIndex)
+											.indexOf(boundaryStartQueryObj)
+											+ 1; i < m_objectIdClusters.get(objectClusterIndex).size() - 1; i++) {
 										// System.out.println("i:" + i );
-										int currentTrueObject = objectClusters.get(objectClusterIndex).get(i);
+										int currentTrueObject = m_objectIdClusters.get(objectClusterIndex).get(i);
 										LinkedList<Integer> currentObjCluster = new LinkedList<Integer>();
-										currentObjCluster.addAll(objectClusters.get(objectClusterIndex));
+										currentObjCluster.addAll(m_objectIdClusters.get(objectClusterIndex));
 										LinkedList<Integer> currentNodeCluster = new LinkedList<Integer>();
 
-										currentNodeCluster.addAll(objectClusters.get(clusteringObjects
+										currentNodeCluster.addAll(m_objectIdClusters.get(clusteringObjects
 												.getObjectClusterNodeClusterInfo().get(objectClusterIndex)));
 
 										double distToBoundaryStartObj = cg.getDistanceBetweenBoundaryObjAndCurrentObj(
@@ -1003,8 +1019,8 @@ public class GraphNetworkSCL {
 							else {
 
 								queriedObjCounter += 2;
-								boundaryStartQueryObj = objectClusters.get(objectClusterIndex).getFirst();
-								boundaryEndQueryObj = objectClusters.get(objectClusterIndex).getLast();
+								boundaryStartQueryObj = m_objectIdClusters.get(objectClusterIndex).getFirst();
+								boundaryEndQueryObj = m_objectIdClusters.get(objectClusterIndex).getLast();
 
 								Map<RoadObject, Double> nearestFalseObjWithDistBoundaryStart = nn
 										.getNearestFalseObjectToGivenObjOnMap(cg, boundaryStartQueryObj);
@@ -1042,12 +1058,12 @@ public class GraphNetworkSCL {
 
 								}
 
-								for (int i = objectClusters.get(objectClusterIndex).indexOf(boundaryStartQueryObj)
-										+ 1; i < objectClusters.get(objectClusterIndex).size() - 1; i++) {
+								for (int i = m_objectIdClusters.get(objectClusterIndex).indexOf(boundaryStartQueryObj)
+										+ 1; i < m_objectIdClusters.get(objectClusterIndex).size() - 1; i++) {
 
-									int currentTrueObject = objectClusters.get(objectClusterIndex).get(i);
+									int currentTrueObject = m_objectIdClusters.get(objectClusterIndex).get(i);
 									LinkedList<Integer> currentObjCluster = new LinkedList<Integer>();
-									currentObjCluster.addAll(objectClusters.get(objectClusterIndex));
+									currentObjCluster.addAll(m_objectIdClusters.get(objectClusterIndex));
 									LinkedList<Integer> currentNodeCluster = new LinkedList<Integer>();
 
 									currentNodeCluster.addAll(nodeClusters.get(clusteringObjects
@@ -1091,9 +1107,11 @@ public class GraphNetworkSCL {
 				}
 
 			}
+
 			// TODO Auto-generated method stub
-			return answerList;
+			return null;
 		}
+
 	}
 
 	/**
