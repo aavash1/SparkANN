@@ -26,42 +26,47 @@ import com.ann.sparkann.framework.UtilsManagement;
 
 public class ToMETISGraphConverter {
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws IOException {
 		System.setProperty("java.util.Arrays.useLegacyMergeSort", "true");
-		String nodeDatasetFile = "Dataset/SFNodes.txt";
-		String edgeDataSetFile = "Dataset/SFEdge.txt";
 
-		CoreGraph cGraph = UtilsManagement.readEdgeTxtFileReturnGraph(edgeDataSetFile);
-		cGraph.setDatasetName("SanFrancisco");
-		ArrayList<Node> nodesList = UtilsManagement.readTxtNodeFile(nodeDatasetFile);
-		cGraph.setNodesWithInfo(nodesList);
+		String nodeDatasetFile = "Dataset/SJNodes.txt";
+		String edgeDataSetFile = "Dataset/SJEdge.txt";
 
-		String graphName = cGraph.getDatasetName();
-		// int nodeSize = cGraph.getNodesWithInfo().size();
-		// int edgeSize = cGraph.getEdgesWithInfo().size();
+		CoreGraph coreGraph = UtilsManagement.readEdgeTxtFileReturnGraph(edgeDataSetFile);
 
-		// String graphOutput = "toMETISGraph/" + graphName + "_METIS_1" + ".graph";
+		ArrayList<Node> convertedNodes = UtilsManagement.readTxtNodeFile(nodeDatasetFile);
+		coreGraph.setNodesWithInfo(convertedNodes);
+		coreGraph.setDatasetName("SanJoaquin");
 
-		String convertedNodeGraph = "convertedGraphs/" + graphName + "Node" + ".txt";
-		String convertedEdgeGraph = "convertedGraphs/" + graphName + "Edge" + ".txt";
+		int nodeSize1 = coreGraph.getNumberOfNodes() - 1;
+		int edgeSize1 = coreGraph.getNumberOfEdges();
 
-		UtilsManagement.convertNodeToTXTFile(cGraph, cGraph.getNodesWithInfo(), convertedNodeGraph);
-		UtilsManagement.convertEdgeToTXTFile(cGraph, cGraph.getEdgesWithInfo(), convertedEdgeGraph);
+		String convertedNodeFile = "convertedGraphs/" + coreGraph.getDatasetName() + "_Nodes_changed_" + ".txt";
+		String convertedEdgeFile = "convertedGraphs/" + coreGraph.getDatasetName() + "_Edges_changed_" + ".txt";
 
-		String convertedNodeFile = "convertedGraphs/" + graphName + "Node" + ".txt";
-		String convertedEdgeFile = "convertedGraphs/" + graphName + "Edge" + ".txt";
+		UtilsManagement.convertEdgeToTXTFile(coreGraph, coreGraph.getEdgesWithInfo(), convertedEdgeFile);
+		UtilsManagement.convertNodeToTXTFile(coreGraph, convertedNodes, convertedNodeFile);
 
 		CoreGraph convertedGraph = UtilsManagement.readEdgeTxtFileReturnGraph(convertedEdgeFile);
-		convertedGraph.setDatasetName(graphName);
-		ArrayList<Node> convertedNodes = UtilsManagement.readTxtNodeFile(convertedNodeFile);
-		convertedGraph.setNodesWithInfo(convertedNodes);
 
-		int nodeSize = cGraph.getNodesWithInfo().size();
-		int edgeSize = cGraph.getEdgesWithInfo().size();
-		
-		String graphOutput = "toMETISGraph/" + graphName + "conv_METIS_1" + ".graph";
+		ArrayList<Node> NodesAfterConversion = UtilsManagement.readTxtNodeFile(convertedNodeFile);
+		convertedGraph.setNodesWithInfo(convertedNodes);
+		convertedGraph.setDatasetName("SanJoaquin");
+
+		// convertedGraph.printEdgesInfo();
+
+//		String changedNodeFile = "convertedGraphs/" + "NANode_changed" + ".txt";
+//		String changedEdgeFile = "convertedGraphs/" + "NAEdge_changed" + ".txt";
+//
+//		UtilsManagement.writeNodeDataset(convertedGraph, changedNodeFile);
+//		UtilsManagement.writeEdgeDataset(convertedGraph, changedEdgeFile);
+		int nodeSize = convertedGraph.getNumberOfNodes() - 1;
+		int edgeSize = convertedGraph.getNumberOfEdges();
+
+		String graphOutput = "toMETISGraph/" + convertedGraph.getDatasetName() + "_METIS_Format" + ".graph";
 
 		ArrayList<int[]> rows1 = UtilsManagement.createAdjArrayForMETISConversion(convertedGraph);
+
 		UtilsManagement.convertDatasetToMETISFormat(graphOutput, rows1, nodeSize, edgeSize);
 
 	}

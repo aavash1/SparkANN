@@ -368,8 +368,9 @@ public class UtilsManagement {
 	public static CoreGraph readEdgeTxtFileReturnGraph(String txtFileName) {
 		CoreGraph graph = new CoreGraph();
 
-		int counter = 0;
+		// int counter = 1;
 		String line = "";
+		// int number = 0;
 		boolean removedBOM = false;
 		try (BufferedReader br = new BufferedReader(new FileReader(txtFileName))) {
 			while ((line = br.readLine()) != null) {
@@ -382,15 +383,21 @@ public class UtilsManagement {
 						removedBOM = true;
 
 					}
+					graph.addEdge(Integer.parseInt(record[0]), Integer.parseInt(record[1]), Integer.parseInt(record[2]),
+							Double.parseDouble(record[3]));
 
-					if (record[0].contains("a")) {
-						graph.addEdge(counter, Integer.parseInt(record[1]), Integer.parseInt(record[2]),
-								Double.parseDouble(record[3]));
-						counter++;
-					} else {
-						graph.addEdge(Integer.parseInt(record[0]), Integer.parseInt(record[1]),
-								Integer.parseInt(record[2]), Double.parseDouble(record[3]));
-					}
+//					if (record[0].contains("a")) {
+//						if (number % 2 == 0) {
+//							graph.addEdge(counter, Integer.parseInt(record[1]), Integer.parseInt(record[2]),
+//									Double.parseDouble(record[3]));
+//							counter++;
+//						}
+//						number++;
+//
+//					} else {
+//						graph.addEdge(Integer.parseInt(record[0]), Integer.parseInt(record[1]),
+//								Integer.parseInt(record[2]), Double.parseDouble(record[3]));
+//					}
 
 				}
 
@@ -400,6 +407,82 @@ public class UtilsManagement {
 		}
 
 		return graph;
+
+	}
+
+	public static void readNodeTxtFileReturnTextFile(String txtFileName, String outputTextFile) throws IOException {
+
+		// works for both node and edge conversion
+		String line = "";
+		boolean removedBOM = false;
+		try (BufferedReader br = new BufferedReader(new FileReader(txtFileName))) {
+			FileWriter outputFile = new FileWriter(outputTextFile, true);
+			while ((line = br.readLine()) != null) {
+				String[] record = line.split(txtSplitBy);
+				if (record.length == 4) {
+
+					if (!removedBOM && record[0] != "0") {
+						record[0] = String.valueOf(0);
+						removedBOM = true;
+					}
+					outputFile.write(record[1] + txtSplitBy + record[2] + txtSplitBy + record[3]);
+					outputFile.write(System.lineSeparator());
+
+				} else {
+					System.out.println("the size of the row is not 4");
+				}
+
+			}
+			outputFile.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+	}
+
+	public static void readEdgeTxtFileReturnTextFile(String txtFileName, String outputTextFile) throws IOException {
+
+		// works for both node and edge conversion
+		String line = "";
+		int counter = 1;
+		boolean removedBOM = false;
+		String[] lineToCompare = new String[4];
+		boolean storedPrevLine = false;
+		try (BufferedReader br = new BufferedReader(new FileReader(txtFileName))) {
+			FileWriter outputFile = new FileWriter(outputTextFile, true);
+			while ((line = br.readLine()) != null) {
+				String[] newLine = line.split(txtSplitBy);
+
+				if (!removedBOM && newLine[0] != "0") {
+					newLine[0] = String.valueOf(0);
+					removedBOM = true;
+				}
+				if (!storedPrevLine) {
+					lineToCompare = newLine;
+					storedPrevLine = true;
+				} else {
+					if ((newLine[1].equals(lineToCompare[2])) && (newLine[2].equals(lineToCompare[1]))) {
+						storedPrevLine = false;
+						continue;
+					}
+				}
+
+				if (newLine.length == 4) {
+
+					outputFile.write(
+							counter + txtSplitBy + newLine[1] + txtSplitBy + newLine[2] + txtSplitBy + newLine[3]);
+					counter++;
+					outputFile.write(System.lineSeparator());
+
+				} else {
+					System.out.println("the size of the row is not 4");
+				}
+
+			}
+			outputFile.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 
 	}
 
@@ -717,6 +800,39 @@ public class UtilsManagement {
 
 	}
 
+	public static void writeNodeDataset(CoreGraph cg, String outputFileName) {
+		try {
+			FileWriter outputFile = new FileWriter(outputFileName);
+
+			for (Node node : cg.getNodesWithInfo()) {
+				outputFile.write(node.getNodeId() + txtSplitBy + node.getLongitude() + txtSplitBy + node.getLatitude());
+				outputFile.write(System.lineSeparator());
+			}
+			outputFile.close();
+
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+
+	}
+
+	public static void writeEdgeDataset(CoreGraph cg, String outputFileName) {
+		try {
+			FileWriter outputFile = new FileWriter(outputFileName);
+
+			for (cEdge edge : cg.getEdgesWithInfo()) {
+				outputFile.write(edge.getEdgeId() + txtSplitBy + edge.getStartNodeId() + txtSplitBy
+						+ edge.getEndNodeId() + txtSplitBy + edge.getLength());
+				outputFile.write(System.lineSeparator());
+			}
+			outputFile.close();
+
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+
+	}
+
 	/*
 	 * public static void writeDatasetStatistics(Graph graph) {
 	 * 
@@ -952,9 +1068,10 @@ public class UtilsManagement {
 			FileWriter outputFile = new FileWriter(nodeFileName, true);
 			// Remove the 1st Integer
 			for (Node node : nodelist) {
-				//System.out.println("Node Id: " + node.getNodeId());
+				// System.out.println("Node Id: " + node.getNodeId());
 				int nodeIdAfterIncrement = node.getNodeId() + 1;
-				//System.out.println("Node Id: " + node.getNodeId() + " changed to " + nodeIdAfterIncrement);
+				// System.out.println("Node Id: " + node.getNodeId() + " changed to " +
+				// nodeIdAfterIncrement);
 				outputFile.write(String.format(
 						nodeIdAfterIncrement + txtSplitBy + node.getLongitude() + txtSplitBy + node.getLatitude()));
 				outputFile.write(System.lineSeparator());
@@ -975,9 +1092,10 @@ public class UtilsManagement {
 			FileWriter outputFile = new FileWriter(nodeFileName, true);
 			// Remove the 1st Integer
 			for (Node node : nodelist) {
-				//System.out.println("Node Id: " + node.getNodeId());
+				// System.out.println("Node Id: " + node.getNodeId());
 				int nodeIdAfterIncrement = node.getNodeId() + 1;
-				//System.out.println("Node Id: " + node.getNodeId() + " changed to " + nodeIdAfterIncrement);
+				// System.out.println("Node Id: " + node.getNodeId() + " changed to " +
+				// nodeIdAfterIncrement);
 				outputFile.write(String.format(
 						nodeIdAfterIncrement + csvSplitBy + node.getLongitude() + csvSplitBy + node.getLatitude()));
 				outputFile.write(System.lineSeparator());
@@ -1001,9 +1119,9 @@ public class UtilsManagement {
 
 			// Remove the 1st Integer
 			for (cEdge EdgeId : edgeList) {
-				//System.out.println("Initial NodeId: " + EdgeId.getEdgeId());
+				// System.out.println("Initial NodeId: " + EdgeId.getEdgeId());
 				int increaseEdgeId = EdgeId.getEdgeId() + 1;
-				//System.out.println("After Increment: " + increaseEdgeId);
+				// System.out.println("After Increment: " + increaseEdgeId);
 				int incrementStartNode = EdgeId.getStartNodeId() + 1;
 				int incrementEndNode = EdgeId.getEndNodeId() + 1;
 				outputFile.write(String.format(increaseEdgeId + txtSplitBy + incrementStartNode + txtSplitBy
@@ -1150,14 +1268,17 @@ public class UtilsManagement {
 
 	public static ArrayList<int[]> createAdjArrayForMETISConversion(CoreGraph cGraph) {
 		ArrayList<int[]> rowList = new ArrayList<>();
+
 		try {
+			int lcount = 0;
+
 			for (Map.Entry<Integer, Map<Integer, Double>> srcEntry : cGraph.getAdjancencyMap().entrySet()) {
-				int lcount = 0;
-				Integer src = srcEntry.getKey();
+				lcount = 0;
+				int src = srcEntry.getKey();
 				int mapSize = cGraph.getAdjancencyMap().get(src).entrySet().size();
 				int[] rows = new int[mapSize];
-				//rows[lcount] = src;
-				//lcount++;
+				// rows[lcount] = src;
+				// lcount++;
 
 				for (Map.Entry<Integer, Double> dstEntry : cGraph.getAdjancencyMap().get(src).entrySet()) {
 					Integer dest = dstEntry.getKey();
