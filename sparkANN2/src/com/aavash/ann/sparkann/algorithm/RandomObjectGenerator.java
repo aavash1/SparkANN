@@ -1859,8 +1859,8 @@ public class RandomObjectGenerator {
 					continue;
 				}
 			}
-			double rating=getRandDoubleBetRange2(1, 10);
-			roadObj.setRating(rating);
+			//double rating=getRandDoubleBetRange2(1, 10);
+			//roadObj.setRating(rating);
 
 			if (graph.addObjectOnEdge(edgeId, roadObj)) {
 				objectCounter++;

@@ -62,15 +62,16 @@ public class GraphNetworkSCL {
 		// String edgeDataSetFile = "Dataset/TinyGraphEdge.txt";
 
 		// TinyGraph
-		String nodeDatasetFile = "Dataset/PCManualGraphNodes.txt";
-		String edgeDataSetFile = "Dataset/PCManualGraphEdges.txt";
+		// SparkANN/convertedGraphs/California_Edges_.txt
+		String nodeDatasetFile = "convertedGraphs/California_Nodes.txt";
+		String edgeDataSetFile = "convertedGraphs/California_Edges.txt";
 
 		/**
 		 * 1.2 Dataset for METIS graph and Partition Output
 		 */
 		String metisInputGraph = "Metisgraph/ManualGraph.txt";
 		// String metisPartitionOutputFile = "PartitionDataset/tg_part.txt";
-		String metisPartitionOutputFile = "PartitionDataset/PCmanualGr_part2.txt";
+		String metisPartitionOutputFile = "PartitionDataset/California_part_2.txt";
 
 		/**
 		 * Load Graph using CoreGraph Framework, YenGraph for calculating shortest paths
@@ -83,7 +84,7 @@ public class GraphNetworkSCL {
 		 * Create Vertices List from the nodeDataset
 		 */
 		ArrayList<Node> nodesList = UtilsManagement.readTxtNodeFile(nodeDatasetFile);
-		//cGraph.setNodesWithInfo(nodesList);
+		cGraph.setNodesWithInfo(nodesList);
 		// cGraph.printEdgesInfo();
 
 		/**
@@ -94,13 +95,13 @@ public class GraphNetworkSCL {
 		 * Generate Random Objects on Edge Data Object=100 Query Object=500 Manual Road
 		 * Object is also used for testing
 		 */
+		RandomObjectGenerator.zgenerateCCDistribution(cGraph, 2, 1, 1000, 1000);
 		// RandomObjectGenerator.generateUniformRandomObjectsOnMap(cGraph, 100, 500);
 
 		// String PCManualObject = "Dataset/manualobject/ManualObjectOnTinyGraph.txt";
 
-		String PCManualObject = "Dataset/manualobject/ManualObjectsOnRoad.txt";
-		UtilsManagement.readRoadObjectTxtFile1(cGraph, PCManualObject);
-		// RandomObjectGenerator.zgenerateCCDistribution(cGraph, 2, 1, 20000, 20000);
+		// String PCManualObject = "Dataset/manualobject/ManualObjectsOnRoad.txt";
+		// UtilsManagement.readRoadObjectTxtFile1(cGraph, PCManualObject);
 
 		// cGraph.printEdgesInfo();
 
@@ -123,7 +124,7 @@ public class GraphNetworkSCL {
 		}
 
 		// Depending upon the size of cluster, CustomPartitionSize can be changed
-		int CustomPartitionSize = 3;
+		int CustomPartitionSize = 2;
 		// int CustomPartitionSize = 2;
 
 		/**
@@ -248,7 +249,7 @@ public class GraphNetworkSCL {
 //				.set("spark.cores.max", "15").set("spark.blockManager.port", "10025")
 //				.set("spark.driver.blockManager.port", "10026").set("spark.driver.port", "10027")
 //				.set("spark.shuffle.service.enabled", "false").set("spark.dynamicAllocation.enabled", "false");
-		;
+		// ;
 
 		SparkConf config = new SparkConf().setMaster("local[*]").setAppName("Graph");
 
@@ -309,7 +310,7 @@ public class GraphNetworkSCL {
 			 **/
 
 			CoreGraph embeddedGraph = createEmbNetwork(cGraph, pathRDD, BoundaryEdge, boundaryPairVertices);
-			embeddedGraph.printEdgesInfo();
+//			embeddedGraph.printEdgesInfo();
 
 //			for (cEdge edge : embeddedGraph.getEdgesWithInfo()) {
 //				int edgeId = cGraph.getEdgeId(edge.getStartNodeId(), edge.getEndNodeId());
@@ -494,8 +495,8 @@ public class GraphNetworkSCL {
 	public static CoreGraph createEmbNetwork(CoreGraph cGraph, JavaRDD<List<Tuple3<Integer, Integer, Double>>> pathRDD,
 			ArrayList<cEdge> borderEdge, Map<Object, Object> borderPairVertex) {
 		CoreGraph embeddedGraph = new CoreGraph();
-		CoreGraph augmentedGraph=new CoreGraph();
-		
+		CoreGraph augmentedGraph = new CoreGraph();
+
 		int newEdgeId = Integer.MAX_VALUE;
 		int virtualVertex = Integer.MAX_VALUE;
 
@@ -521,8 +522,6 @@ public class GraphNetworkSCL {
 			}
 
 		}
-		
-		
 
 		return embeddedGraph;
 	}
