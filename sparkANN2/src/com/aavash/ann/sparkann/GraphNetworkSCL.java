@@ -62,21 +62,30 @@ public class GraphNetworkSCL {
 		// String nodeDatasetFile = "Dataset/TinygraphNodes.txt";
 		// String edgeDataSetFile = "Dataset/TinyGraphEdge.txt";
 
-		String nodeDatasetFile = "convertedGraphs/California_Nodes.txt";
-		String edgeDataSetFile = "convertedGraphs/California_Edges.txt";
+		String nodeDatasetFile = args[0];
+		String edgeDataSetFile = args[1];
+		String metisPartitionOutputFile = args[2];
+		String partitionValue = args[3];
 
-		/**
-		 * 1.2 Dataset for METIS graph and Partition Output
-		 */
-		String metisInputGraph = "Metisgraph/ManualGraph.txt";
-		// String metisPartitionOutputFile = "PartitionDataset/tg_part.txt";
-		String metisPartitionOutputFile = "PartitionDataset/California_part_2.txt";
+		if (args.length < 0) {
+			System.err.println("No arguements are passed");
+		}
+
+//		String nodeDatasetFile = "/home/aavashbhandari/Datasets/California_Nodes.txt";
+//		String edgeDataSetFile = "/home/aavashbhandari/Datasets/California_Edges.txt";
+//
+//		/**
+//		 * 1.2 Dataset for METIS graph and Partition Output
+//		 */
+//		String metisInputGraph = "Metisgraph/ManualGraph.txt";
+//		// String metisPartitionOutputFile = "PartitionDataset/tg_part.txt";
+//		String metisPartitionOutputFile = "/home/aavashbhandari/Partitionfiles/California_part_4.txt";
 
 		/**
 		 * Load Graph using CoreGraph Framework, YenGraph for calculating shortest paths
 		 */
-		CoreGraph cGraph = UtilsManagement.readEdgeTxtFileReturnGraph(edgeDataSetFile);
 
+		CoreGraph cGraph = UtilsManagement.readEdgeTxtFileReturnGraph(edgeDataSetFile);
 		YenGraph yGraph = new YenGraph(edgeDataSetFile);
 
 		/**
@@ -123,7 +132,7 @@ public class GraphNetworkSCL {
 		}
 
 		// Depending upon the size of cluster, CustomPartitionSize can be changed
-		int CustomPartitionSize = 2;
+		int CustomPartitionSize = Integer.valueOf(partitionValue);
 		// int CustomPartitionSize = 2;
 
 		/**
@@ -243,14 +252,15 @@ public class GraphNetworkSCL {
 		Logger.getLogger("org.apache").setLevel(Level.WARN);
 
 //		SparkConf config = new SparkConf().setAppName("ANNCLUSTERD").set("spark.locality.wait", "0")
-//				.set("spark.submit.deployMode", "cluster").set("spark.driver.maxResultSize", "2g")
-//				.set("spark.executor.memory", "4g").setMaster("spark://210.107.197.210:7077")
-//				.set("spark.cores.max", "15").set("spark.blockManager.port", "10025")
+//				.set("spark.submit.deployMode", "cluster").set("spark.driver.maxResultSize", "5g")
+//				.set("spark.executor.memory", "6g").setMaster("spark://10.146.0.5:7077")
+//				.set("spark.cores.max", "8").set("spark.blockManager.port", "10025")
 //				.set("spark.driver.blockManager.port", "10026").set("spark.driver.port", "10027")
 //				.set("spark.shuffle.service.enabled", "false").set("spark.dynamicAllocation.enabled", "false");
-		// ;
 
-		SparkConf config = new SparkConf().setMaster("local[*]").setAppName("Graph");
+		SparkConf config = new SparkConf().setMaster("YARN").setAppName("ANNCLUSTERED")
+				.set("spark.submit.deployMode", "cluster").set("spark.locality.wait", "0")
+				.set("spark.shuffle.service.enabled", "false").set("spark.dynamicAllocation.enabled", "false");
 
 		try (JavaSparkContext jscontext = new JavaSparkContext(config)) {
 
@@ -261,7 +271,7 @@ public class GraphNetworkSCL {
 
 //			BoundaryEdgeRDD.foreach(
 //					x -> System.out.println(x.getStartNodeId() + "-->" + x.getEndNodeId() + " : " + x.getLength()));
-//			System.out.println(" ");
+//			System.out.println(" ");/SparkANN/convertedGraphs/California_Edges.txt
 
 			JavaRDD<List<Tuple3<Integer, Integer, Double>>> pathRDD = jscontext.parallelize(shortestPathList)
 					.map(new Function<List<Path>, List<Tuple3<Integer, Integer, Double>>>() {
@@ -380,6 +390,7 @@ public class GraphNetworkSCL {
 						// private List<Tuple3<Integer, Integer, Double>> nnList = new ArrayList<>();
 						List<Tuple3<Integer, Integer, Double>> nearestNeighborList = new ArrayList<Tuple3<Integer, Integer, Double>>();
 						// CoreGraph subGraph1 = new CoreGraph();
+						private long duration = 0l;
 
 						@Override
 						public void call(
@@ -453,8 +464,10 @@ public class GraphNetworkSCL {
 								Map<Integer, LinkedList<Integer>> nodeCluster = clusteringNodes.cluster(subGraph0);
 
 								clusteredANN can = new clusteredANN();
+								long startTime = System.nanoTime();
 								nearestNeighborList = can.call(subGraph0, true, nodeCluster);
-
+								long endTime = System.nanoTime();
+								duration = (endTime - startTime) / 1000000;
 								// clusteredANN can = new clusteredANN();
 								// nnList = can.call(subGraph0, true);
 
@@ -466,7 +479,7 @@ public class GraphNetworkSCL {
 //								NearestNeighborResult.saveAsTextFile("/SparkANN/Result");
 
 							}
-							System.out.println(nearestNeighborList);
+							System.out.println(duration);
 
 						}
 					});

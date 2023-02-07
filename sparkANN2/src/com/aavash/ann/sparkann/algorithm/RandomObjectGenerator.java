@@ -1815,7 +1815,7 @@ public class RandomObjectGenerator {
 		int totalNumberOfNodes = graph.getNodesWithInfo().size();
 		boolean foundCentroidNodeId = false;
 
-		int selectedRandomNode = -1;
+		int selectedRandomNode = 1;
 		while (!foundCentroidNodeId) {
 			selectedRandomNode = (int) getThreadRandomNumberInBetween(1, totalNumberOfNodes - 1);
 			//System.out.println("selected Random node: " + selectedRandomNode);

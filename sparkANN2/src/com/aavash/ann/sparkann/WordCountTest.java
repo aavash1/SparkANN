@@ -17,12 +17,14 @@ public class WordCountTest {
 	public static void main(String[] args) {
 
 		Logger.getLogger("org.apache").setLevel(Level.WARN);
+		
+		SparkConf config = new SparkConf().setAppName("word count").setMaster("local[*]");
 
-		SparkConf config = new SparkConf().setAppName("word count").set("spark.shuffle.service.enabled", "false")
-				.set("spark.dynamicAllocation.enabled", "false").set("spark.submit.deployMode", "cluster")
-				.setMaster("spark://210.107.197.210:7077").set("spark.blockManager.port", "10025").set("spark.driver.port", "10027").set("spark.executor.memory", "512M")
-				.set("spark.cores.max", "4");
-		// .set("spark.locality.wait", "0")
+//		SparkConf config = new SparkConf().setAppName("word count").set("spark.shuffle.service.enabled", "false")
+//				.set("spark.dynamicAllocation.enabled", "false").set("spark.submit.deployMode", "cluster")
+//				.setMaster("spark://210.107.197.210:7077").set("spark.blockManager.port", "10025").set("spark.driver.port", "10027").set("spark.executor.memory", "512M")
+//				.set("spark.cores.max", "4");
+//		// .set("spark.locality.wait", "0")
 //				.set("spark.submit.deployMode", "cluster").set("spark.driver.maxResultSize", "512M")
 //				.set("spark.executor.memory", "512M").setMaster("spark://210.107.197.210:7077")
 //				.set("spark.cores.max", "4").set("spark.blockManager.port", "10025")

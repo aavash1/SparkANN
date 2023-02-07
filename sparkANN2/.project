@@ -20,16 +20,4 @@
 		<nature>org.eclipse.m2e.core.maven2Nature</nature>
 		<nature>org.eclipse.jdt.core.javanature</nature>
 	</natures>
-	<linkedResources>
-		<link>
-			<name>Dataset/TinygraphEdges.csv</name>
-			<type>1</type>
-			<location>/home/aavash/Desktop/TinygraphEdges.csv</location>
-		</link>
-		<link>
-			<name>Dataset/TinygraphNodes.csv</name>
-			<type>1</type>
-			<location>/home/aavash/Desktop/TinygraphNodes.csv</location>
-		</link>
-	</linkedResources>
 </projectDescription>
